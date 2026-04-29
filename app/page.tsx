@@ -129,24 +129,23 @@ export default function HomePage() {
               CV? No problem. We help you build one.
             </p>
 
-            <div className="mt-8 flex max-w-md flex-col gap-2 sm:flex-row">
-              <div
-                aria-disabled
-                className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-sm text-[var(--color-muted)]"
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href="/sign-in?intent=candidate"
+                className="rounded-md bg-[var(--color-primary)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"
               >
-                Phone or email
-              </div>
-              <button
-                type="button"
-                disabled
-                className="rounded-md bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white opacity-70"
+                Find work
+              </a>
+              <a
+                href="/sign-in?intent=employer"
+                className="rounded-md border border-[var(--color-border)] px-5 py-3 text-sm font-semibold hover:border-[var(--color-primary-strong)]"
               >
-                Notify me
-              </button>
+                Post a job or apprenticeship
+              </a>
             </div>
             <p className="mt-2 text-xs text-[var(--color-muted)]">
-              Waitlist opens with the MVP. Free, no spam, no fees from job
-              seekers — ever.
+              Free for job seekers, always. Sign in by SMS — no email or
+              password needed.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -261,10 +260,10 @@ export default function HomePage() {
                 Read the repository
               </a>
               <a
-                href="#top"
+                href="/sign-in?intent=candidate"
                 className="rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"
               >
-                Join the waitlist
+                Find work
               </a>
             </div>
           </div>
