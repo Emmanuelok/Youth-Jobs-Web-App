@@ -3,9 +3,11 @@ import { getSession } from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
+import { getUnreadCount } from "@/app/(engine)/messages/actions";
 
 export async function EngineHeader() {
   let role: "candidate" | "employer" | "admin" | null = null;
+  let unread = 0;
   try {
     const session = await getSession();
     if (session.userId) {
@@ -17,6 +19,11 @@ export async function EngineHeader() {
         .limit(1);
       const r = u?.role;
       if (r === "candidate" || r === "employer" || r === "admin") role = r;
+      try {
+        unread = await getUnreadCount(session.userId);
+      } catch {
+        unread = 0;
+      }
     }
   } catch {
     // env not configured — header still renders, just signed-out
@@ -49,6 +56,19 @@ export async function EngineHeader() {
               className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
             >
               My CV
+            </Link>
+          )}
+          {role && (
+            <Link
+              href="/messages"
+              className="relative rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+            >
+              Messages
+              {unread > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  {unread}
+                </span>
+              )}
             </Link>
           )}
           {role === "employer" && (

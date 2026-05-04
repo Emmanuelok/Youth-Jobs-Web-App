@@ -79,28 +79,30 @@ export default async function EmployerDashboardPage() {
         {myJobs.map((j) => (
           <li
             key={j.id}
-            className="flex items-start justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3"
+            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 hover:border-[var(--color-primary-strong)]"
           >
-            <div>
-              <p className="text-sm font-semibold">{j.title}</p>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">
-                {j.type} · {j.city}, {j.region}
-              </p>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">
-                {j.applicantCount} applicant{j.applicantCount === 1 ? "" : "s"}
-              </p>
-            </div>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-                j.status === "published"
-                  ? "bg-[var(--color-primary)]/15 text-[var(--color-primary-strong)]"
-                  : j.status === "rejected"
-                    ? "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
-                    : "border border-[var(--color-border)] text-[var(--color-muted)]"
-              }`}
-            >
-              {j.status.replace("_", " ")}
-            </span>
+            <Link href={`/employer/jobs/${j.id}`} className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">{j.title}</p>
+                <p className="mt-1 text-xs text-[var(--color-muted)]">
+                  {j.type} · {j.city}, {j.region}
+                </p>
+                <p className="mt-1 text-xs text-[var(--color-muted)]">
+                  {j.applicantCount} applicant{j.applicantCount === 1 ? "" : "s"} · view
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
+                  j.status === "published"
+                    ? "bg-[var(--color-primary)]/15 text-[var(--color-primary-strong)]"
+                    : j.status === "rejected"
+                      ? "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
+                      : "border border-[var(--color-border)] text-[var(--color-muted)]"
+                }`}
+              >
+                {j.status.replace("_", " ")}
+              </span>
+            </Link>
           </li>
         ))}
       </ul>

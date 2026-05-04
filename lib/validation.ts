@@ -95,6 +95,12 @@ export const jobPostSchema = z.object({
   isHazardous: z.boolean().default(false),
 });
 
+export const messageBodySchema = z
+  .string()
+  .trim()
+  .min(1, "Type a message before sending.")
+  .max(2000, "Keep messages under 2000 characters.");
+
 export const scamReportSchema = z.object({
   jobId: z.string().uuid(),
   category: z.enum([

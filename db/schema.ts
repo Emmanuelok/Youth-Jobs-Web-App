@@ -237,5 +237,70 @@ export const notificationLog = pgTable(
   (t) => [index("notif_log_candidate_sent_idx").on(t.candidateId, t.sentAt)],
 );
 
+/**
+ * In-app messaging between an employer and a candidate, scoped to a single
+ * job application. Phone numbers are never exposed across the boundary —
+ * if the parties want to call, they exchange numbers in-message.
+ */
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    employerId: uuid("employer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    archivedByEmployer: boolean("archived_by_employer")
+      .notNull()
+      .default(false),
+    archivedByCandidate: boolean("archived_by_candidate")
+      .notNull()
+      .default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("conversations_unique_idx").on(
+      t.jobId,
+      t.employerId,
+      t.candidateId,
+    ),
+    index("conversations_employer_idx").on(t.employerId, t.lastMessageAt),
+    index("conversations_candidate_idx").on(t.candidateId, t.lastMessageAt),
+  ],
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("messages_conversation_idx").on(t.conversationId, t.createdAt),
+  ],
+);
+
 export type GeneratedCv = typeof generatedCvs.$inferSelect;
 export type NotificationLog = typeof notificationLog.$inferSelect;
+export type Conversation = typeof conversations.$inferSelect;
+export type Message = typeof messages.$inferSelect;
