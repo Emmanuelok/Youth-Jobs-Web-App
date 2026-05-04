@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { hasApprovedConsent } from "@/lib/consent";
+import { notifyApplicationReceived } from "@/lib/notify/events";
 import { scamReportSchema } from "@/lib/validation";
 import { bool, str, withError, withFlash } from "@/lib/forms";
 
@@ -102,7 +103,7 @@ export async function applyToJobAction(formData: FormData) {
     acknowledgedTermsAt = new Date();
   }
 
-  await db
+  const inserted = await db
     .insert(applications)
     .values({
       jobId,
@@ -112,7 +113,15 @@ export async function applyToJobAction(formData: FormData) {
     })
     .onConflictDoNothing({
       target: [applications.jobId, applications.candidateId],
+    })
+    .returning({ id: applications.id });
+
+  // Best-effort notification to the employer; never blocks the user response.
+  if (inserted[0]?.id) {
+    await notifyApplicationReceived(inserted[0].id).catch((err) => {
+      console.error("notifyApplicationReceived failed:", err);
     });
+  }
 
   redirect(withFlash(`/jobs/${jobId}`, "Application sent. Good luck!"));
 }

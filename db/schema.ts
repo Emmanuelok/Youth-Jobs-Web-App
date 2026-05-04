@@ -259,10 +259,13 @@ export const notificationLog = pgTable(
   "notification_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // Recipient — may be a candidate, an employer, or anyone with a user row.
+    // Column name kept as candidate_id for source compatibility; treat as recipientId.
     candidateId: uuid("candidate_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     channel: text("channel").notNull(), // 'sms' | 'whatsapp'
+    kind: text("kind").notNull().default("digest"), // 'digest' | 'application_received' | 'application_withdrawn' | 'application_status' | 'job_decision'
     body: text("body").notNull(),
     jobIds: jsonb("job_ids").notNull(), // string[]
     providerOk: boolean("provider_ok").notNull(),
@@ -271,7 +274,10 @@ export const notificationLog = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("notif_log_candidate_sent_idx").on(t.candidateId, t.sentAt)],
+  (t) => [
+    index("notif_log_candidate_sent_idx").on(t.candidateId, t.sentAt),
+    index("notif_log_kind_idx").on(t.kind, t.sentAt),
+  ],
 );
 
 /**

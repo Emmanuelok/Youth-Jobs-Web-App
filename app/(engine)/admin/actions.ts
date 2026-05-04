@@ -10,6 +10,7 @@ import {
   scamReports,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { notifyJobDecision } from "@/lib/notify/events";
 import { str } from "@/lib/forms";
 
 async function requireAdmin() {
@@ -97,6 +98,10 @@ export async function publishJobAction(formData: FormData) {
     entityId: jobId,
   });
 
+  await notifyJobDecision(jobId, "published").catch((err) => {
+    console.error("notifyJobDecision (publish) failed:", err);
+  });
+
   redirect("/admin");
 }
 
@@ -122,6 +127,10 @@ export async function rejectJobAction(formData: FormData) {
     entityType: "job",
     entityId: jobId,
     metadata: { reason },
+  });
+
+  await notifyJobDecision(jobId, "rejected", reason).catch((err) => {
+    console.error("notifyJobDecision (reject) failed:", err);
   });
 
   redirect("/admin");

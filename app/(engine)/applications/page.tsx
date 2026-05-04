@@ -8,8 +8,14 @@ import {
   jobs,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { withdrawApplicationAction } from "./actions";
 
-export default async function MyApplicationsPage() {
+export default async function MyApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ flash?: string }>;
+}) {
+  const sp = await searchParams;
   const session = await getSession();
   if (!session.userId) redirect("/sign-in?intent=candidate");
   if (session.role !== "candidate" && session.role !== "admin") {
@@ -51,6 +57,12 @@ export default async function MyApplicationsPage() {
         Use Messages to talk to employers — never share OTP codes or send
         money.
       </p>
+
+      {sp.flash && (
+        <div className="mt-4 rounded-md border border-[var(--color-primary-strong)] bg-[var(--color-surface)] px-3 py-2 text-sm">
+          {sp.flash}
+        </div>
+      )}
 
       <ul className="mt-6 space-y-3">
         {rows.length === 0 && (
@@ -115,6 +127,17 @@ export default async function MyApplicationsPage() {
                   >
                     View agreement
                   </Link>
+                )}
+                {r.status !== "withdrawn" && r.status !== "hired" && (
+                  <form action={withdrawApplicationAction}>
+                    <input type="hidden" name="applicationId" value={r.id} />
+                    <button
+                      type="submit"
+                      className="text-[10px] uppercase tracking-wider text-[var(--color-danger)] underline hover:no-underline"
+                    >
+                      Withdraw
+                    </button>
+                  </form>
                 )}
               </div>
             </div>
