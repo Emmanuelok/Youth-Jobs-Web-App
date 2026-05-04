@@ -11,6 +11,7 @@ import {
   users,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { hasApprovedConsent } from "@/lib/consent";
 import { scamReportSchema } from "@/lib/validation";
 import { str, withError, withFlash } from "@/lib/forms";
 
@@ -61,6 +62,14 @@ export async function applyToJobAction(formData: FormData) {
         "This trade is classed as hazardous and not open to under-18 applicants.",
       ),
     );
+  }
+
+  // Under-18 applicants need an approved guardian consent on file.
+  if (user?.isUnder18) {
+    const ok = await hasApprovedConsent(session.userId!);
+    if (!ok) {
+      redirect(`/onboarding/guardian?next=${encodeURIComponent(`/jobs/${jobId}`)}`);
+    }
   }
 
   const message = str(formData, "message").slice(0, 600) || null;

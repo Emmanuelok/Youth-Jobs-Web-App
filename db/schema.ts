@@ -291,12 +291,47 @@ export const messages = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
     readAt: timestamp("read_at", { withTimezone: true }),
+    flagSeverity: text("flag_severity"), // 'medium' | 'low' (HIGH is refused before insert)
+    flagReasons: jsonb("flag_reasons"), // string[]
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (t) => [
     index("messages_conversation_idx").on(t.conversationId, t.createdAt),
+    index("messages_flagged_idx").on(t.flagSeverity, t.createdAt),
+  ],
+);
+
+/**
+ * Guardian consent for users under 18. We never let a minor apply for an
+ * opportunity until a consent row with decision='approved' exists. Tokens
+ * are SMS-delivered to the guardian's phone and expire after 14 days.
+ */
+export const guardianConsents = pgTable(
+  "guardian_consents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    guardianName: text("guardian_name").notNull(),
+    guardianRelation: text("guardian_relation").notNull(), // 'parent'|'guardian'|'family_member'|'community_leader'
+    guardianPhone: text("guardian_phone").notNull(),
+    token: text("token").notNull(),
+    requestedAt: timestamp("requested_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    decisionAt: timestamp("decision_at", { withTimezone: true }),
+    decision: text("decision"), // 'approved' | 'refused'
+    decisionIp: text("decision_ip"), // forwarded-for, useful for audit
+    refusalReason: text("refusal_reason"),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("guardian_consents_token_idx").on(t.token),
+    index("guardian_consents_candidate_idx").on(t.candidateId, t.requestedAt),
   ],
 );
 
@@ -304,3 +339,4 @@ export type GeneratedCv = typeof generatedCvs.$inferSelect;
 export type NotificationLog = typeof notificationLog.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type GuardianConsent = typeof guardianConsents.$inferSelect;

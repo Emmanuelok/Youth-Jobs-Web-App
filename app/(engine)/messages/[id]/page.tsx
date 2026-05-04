@@ -123,6 +123,10 @@ export default async function ThreadPage({
         )}
         {thread.map((m) => {
           const mine = m.senderId === userId;
+          const flagged = m.flagSeverity === "medium" && !mine;
+          const reasons = Array.isArray(m.flagReasons)
+            ? (m.flagReasons as string[])
+            : [];
           return (
             <li
               key={m.id}
@@ -132,9 +136,17 @@ export default async function ThreadPage({
                 className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
                   mine
                     ? "bg-[var(--color-primary)] text-white"
-                    : "border border-[var(--color-border)] bg-[var(--color-surface)]"
+                    : flagged
+                      ? "border border-[var(--color-danger)] bg-[var(--color-surface)]"
+                      : "border border-[var(--color-border)] bg-[var(--color-surface)]"
                 }`}
               >
+                {flagged && (
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-danger)]">
+                    ⚠ Caution: {reasons.join(", ")}. Never send money or share
+                    OTP codes.
+                  </p>
+                )}
                 <p className="whitespace-pre-line">{m.body}</p>
                 <p
                   className={`mt-1 text-[10px] ${

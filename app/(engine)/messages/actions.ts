@@ -5,12 +5,14 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   applications,
+  auditLogs,
   conversations,
   jobs,
   messages,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { messageBodySchema } from "@/lib/validation";
+import { screenMessage } from "@/lib/safety/messageScreening";
 import { str, withError } from "@/lib/forms";
 
 /**
@@ -70,6 +72,27 @@ export async function startConversationAction(formData: FormData) {
     );
   }
 
+  // Anti-scam screening — refuse HIGH severity before insert.
+  const screen = screenMessage(parsed.data);
+  if (screen.severity === "high") {
+    await db.insert(auditLogs).values({
+      actorId: session.userId!,
+      action: "message.blocked",
+      entityType: "job",
+      entityId: jobId,
+      metadata: {
+        reasons: screen.reasons,
+        bodyExcerpt: parsed.data.slice(0, 200),
+      },
+    });
+    redirect(
+      withError(
+        `/employer/jobs/${jobId}`,
+        `That message can't be sent: ${screen.reasons.join("; ")}.`,
+      ),
+    );
+  }
+
   // Upsert conversation (one thread per job × employer × candidate).
   const employerId = job.employerId;
   const [convo] = await db
@@ -89,6 +112,8 @@ export async function startConversationAction(formData: FormData) {
     conversationId: convo.id,
     senderId: session.userId!,
     body: parsed.data,
+    flagSeverity: screen.severity,
+    flagReasons: screen.reasons.length > 0 ? screen.reasons : null,
   });
 
   redirect(`/messages/${convo.id}`);
@@ -128,11 +153,33 @@ export async function sendReplyAction(formData: FormData) {
     redirect(withError("/messages", "Conversation not found."));
   }
 
+  const screen = screenMessage(parsed.data);
+  if (screen.severity === "high") {
+    await db.insert(auditLogs).values({
+      actorId: session.userId!,
+      action: "message.blocked",
+      entityType: "conversation",
+      entityId: convo.id,
+      metadata: {
+        reasons: screen.reasons,
+        bodyExcerpt: parsed.data.slice(0, 200),
+      },
+    });
+    redirect(
+      withError(
+        `/messages/${convo.id}`,
+        `That message can't be sent: ${screen.reasons.join("; ")}. The platform never charges fees and never asks for your OTP.`,
+      ),
+    );
+  }
+
   const now = new Date();
   await db.insert(messages).values({
     conversationId: convo.id,
     senderId: session.userId!,
     body: parsed.data,
+    flagSeverity: screen.severity,
+    flagReasons: screen.reasons.length > 0 ? screen.reasons : null,
   });
   await db
     .update(conversations)

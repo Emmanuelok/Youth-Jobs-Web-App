@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
-import { desc, eq, isNull } from "drizzle-orm";
+import { desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   employerProfiles,
   jobs,
+  messages,
   scamReports,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
@@ -42,6 +43,21 @@ export default async function AdminPage() {
     .from(scamReports)
     .where(eq(scamReports.status, "open"))
     .orderBy(desc(scamReports.createdAt))
+    .limit(50);
+
+  const flaggedMessages = await db
+    .select({
+      id: messages.id,
+      conversationId: messages.conversationId,
+      body: messages.body,
+      flagSeverity: messages.flagSeverity,
+      flagReasons: messages.flagReasons,
+      senderId: messages.senderId,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .where(isNotNull(messages.flagSeverity))
+    .orderBy(desc(messages.createdAt))
     .limit(50);
 
   return (
@@ -181,6 +197,37 @@ export default async function AdminPage() {
             </div>
           </li>
         ))}
+      </ul>
+
+      <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+        Flagged messages ({flaggedMessages.length})
+      </h2>
+      <ul className="mt-3 space-y-3">
+        {flaggedMessages.length === 0 && (
+          <li className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-sm text-[var(--color-muted)]">
+            No flagged messages.
+          </li>
+        )}
+        {flaggedMessages.map((m) => {
+          const reasons = Array.isArray(m.flagReasons)
+            ? (m.flagReasons as string[])
+            : [];
+          return (
+            <li
+              key={m.id}
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3"
+            >
+              <p className="text-xs uppercase tracking-wider text-[var(--color-danger)]">
+                {m.flagSeverity} · {reasons.join(", ")}
+              </p>
+              <p className="mt-2 whitespace-pre-line text-sm">{m.body}</p>
+              <p className="mt-1 text-xs text-[var(--color-muted)]">
+                Conversation {m.conversationId} · sender {m.senderId} ·{" "}
+                {new Date(m.createdAt).toLocaleString()}
+              </p>
+            </li>
+          );
+        })}
       </ul>
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-[var(--color-muted)]">
