@@ -5,6 +5,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   applications,
+  apprenticeshipTerms,
   candidateProfiles,
   jobs,
   scamReports,
@@ -13,7 +14,7 @@ import {
 import { getSession } from "@/lib/auth/session";
 import { hasApprovedConsent } from "@/lib/consent";
 import { scamReportSchema } from "@/lib/validation";
-import { str, withError, withFlash } from "@/lib/forms";
+import { bool, str, withError, withFlash } from "@/lib/forms";
 
 export async function applyToJobAction(formData: FormData) {
   const jobId = str(formData, "jobId");
@@ -74,12 +75,40 @@ export async function applyToJobAction(formData: FormData) {
 
   const message = str(formData, "message").slice(0, 600) || null;
 
+  // Apprenticeship-specific gate: require explicit terms acknowledgment.
+  let acknowledgedTermsAt: Date | null = null;
+  if (job.type === "apprenticeship") {
+    const [terms] = await db
+      .select({ jobId: apprenticeshipTerms.jobId })
+      .from(apprenticeshipTerms)
+      .where(eq(apprenticeshipTerms.jobId, jobId))
+      .limit(1);
+    if (!terms) {
+      redirect(
+        withError(
+          `/jobs/${jobId}`,
+          "This apprenticeship is missing terms. Please report it.",
+        ),
+      );
+    }
+    if (!bool(formData, "acknowledgedTerms")) {
+      redirect(
+        withError(
+          `/jobs/${jobId}`,
+          "Please confirm you have read the apprenticeship terms before applying.",
+        ),
+      );
+    }
+    acknowledgedTermsAt = new Date();
+  }
+
   await db
     .insert(applications)
     .values({
       jobId,
       candidateId: session.userId!,
       message,
+      acknowledgedTermsAt,
     })
     .onConflictDoNothing({
       target: [applications.jobId, applications.candidateId],

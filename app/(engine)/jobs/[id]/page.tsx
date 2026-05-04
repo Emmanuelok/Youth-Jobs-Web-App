@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   applications,
+  apprenticeshipTerms,
   employerProfiles,
   jobs,
 } from "@/db/schema";
@@ -32,6 +33,14 @@ export default async function JobDetailPage({
     .from(employerProfiles)
     .where(eq(employerProfiles.userId, job.employerId))
     .limit(1);
+
+  const [terms] = job.type === "apprenticeship"
+    ? await db
+        .select()
+        .from(apprenticeshipTerms)
+        .where(eq(apprenticeshipTerms.jobId, job.id))
+        .limit(1)
+    : [undefined];
 
   const session = await getSession();
   let alreadyApplied = false;
@@ -106,6 +115,59 @@ export default async function JobDetailPage({
         {job.description}
       </article>
 
+      {terms && (
+        <section className="mt-6 rounded-lg border border-[var(--color-primary-strong)]/40 bg-[var(--color-surface)] p-5">
+          <p className="text-xs uppercase tracking-wider text-[var(--color-primary-strong)]">
+            Apprenticeship terms
+          </p>
+          <p className="mt-1 text-xs text-[var(--color-muted)]">
+            These terms are part of the agreement between you and the master.
+            By applying, you confirm you have read them.
+          </p>
+          <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+            <Term label="Duration">{terms.durationMonths} months</Term>
+            <Term label="Hours per week">{terms.hoursPerWeek} hours</Term>
+            <Term label="Daily schedule">
+              {terms.startTimeOfDay} – {terms.endTimeOfDay}
+            </Term>
+            <Term label="Days off per week">{terms.daysOffPerWeek}</Term>
+            <Term label="Stipend">
+              {terms.stipendAmountGhs && terms.stipendPeriod
+                ? `GHS ${terms.stipendAmountGhs.toLocaleString()} / ${terms.stipendPeriod}`
+                : "No stipend"}
+            </Term>
+          </dl>
+          <div className="mt-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+              You will learn
+            </p>
+            <ul className="mt-1 list-disc pl-5 text-sm">
+              {terms.trainingTopics.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+              On completion
+            </p>
+            <p className="mt-1 text-sm">{terms.completionOutcome}</p>
+          </div>
+          {terms.notesForGuardians && (
+            <div className="mt-4">
+              <p className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Note for guardians
+              </p>
+              <p className="mt-1 text-sm">{terms.notesForGuardians}</p>
+            </div>
+          )}
+          <p className="mt-4 text-xs text-[var(--color-muted)]">
+            Under-18 apprentices may not work between 8pm and 6am or in
+            hazardous trades, regardless of any agreement above.
+          </p>
+        </section>
+      )}
+
       <div className="mt-6 rounded-lg border border-[var(--color-accent)]/40 bg-[var(--color-surface)] p-4 text-xs text-[var(--color-muted)]">
         <p className="font-semibold text-[var(--color-accent)]">
           Stay safe when applying
@@ -135,6 +197,28 @@ export default async function JobDetailPage({
             placeholder="Why are you interested?"
             className={`${inputCls} resize-y`}
           />
+          {terms && (
+            <label className="mt-3 flex items-start gap-2 text-xs">
+              <input
+                type="checkbox"
+                name="acknowledgedTerms"
+                value="1"
+                required
+                className="mt-1"
+              />
+              <span>
+                I have read the apprenticeship terms above and agree to them.
+                {" "}
+                <a
+                  href={`/jobs/${job.id}/agreement`}
+                  className="underline hover:text-[var(--color-text)]"
+                >
+                  See the full agreement
+                </a>
+                .
+              </span>
+            </label>
+          )}
           <button
             type="submit"
             disabled={alreadyApplied}
@@ -180,5 +264,22 @@ export default async function JobDetailPage({
         </form>
       </div>
     </section>
+  );
+}
+
+function Term({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2">
+      <dt className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-sm">{children}</dd>
+    </div>
   );
 }

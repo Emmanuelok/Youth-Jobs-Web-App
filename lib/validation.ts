@@ -95,6 +95,19 @@ export const jobPostSchema = z.object({
   isHazardous: z.boolean().default(false),
 });
 
+export const apprenticeshipTermsSchema = z.object({
+  durationMonths: z.number().int().gte(1).lte(60),
+  hoursPerWeek: z.number().int().gte(1).lte(60),
+  stipendAmountGhs: z.number().int().nonnegative().nullable(),
+  stipendPeriod: z.enum(["week", "month"]).nullable(),
+  startTimeOfDay: z.string().regex(/^\d{2}:\d{2}$/),
+  endTimeOfDay: z.string().regex(/^\d{2}:\d{2}$/),
+  daysOffPerWeek: z.number().int().gte(0).lte(7),
+  trainingTopics: z.array(z.string().min(2).max(120)).min(1).max(12),
+  completionOutcome: z.string().min(8).max(400),
+  notesForGuardians: z.string().max(800).optional(),
+});
+
 export const messageBodySchema = z
   .string()
   .trim()

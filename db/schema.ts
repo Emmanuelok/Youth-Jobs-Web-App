@@ -127,6 +127,9 @@ export const applications = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     status: text("status").notNull().default("submitted"), // 'submitted'|'shortlisted'|'rejected'|'hired'|'withdrawn'
     message: text("message"),
+    acknowledgedTermsAt: timestamp("acknowledged_terms_at", {
+      withTimezone: true,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -136,6 +139,40 @@ export const applications = pgTable(
   },
   (t) => [uniqueIndex("applications_job_candidate_unique").on(t.jobId, t.candidateId)],
 );
+
+/**
+ * Apprenticeship-specific terms. One row per apprenticeship job. Captured
+ * at post time, displayed to the candidate before they apply, and rendered
+ * as a printable agreement once a placement is made.
+ *
+ * IMPORTANT: We do not consider this a legally binding contract on its own.
+ * Section 7 #23 of the blueprint flagged that an apprenticeship agreement
+ * template needs a Ghanaian lawyer's review against the TVET Act (Act 1023,
+ * 2020), Children's Act (Act 560), and Labour Act (Act 651). This is the
+ * structured-data foundation that lets us render that template once
+ * approved.
+ */
+export const apprenticeshipTerms = pgTable("apprenticeship_terms", {
+  jobId: uuid("job_id")
+    .primaryKey()
+    .references(() => jobs.id, { onDelete: "cascade" }),
+  durationMonths: integer("duration_months").notNull(),
+  hoursPerWeek: integer("hours_per_week").notNull(),
+  stipendAmountGhs: integer("stipend_amount_ghs"), // null = no stipend
+  stipendPeriod: text("stipend_period"), // 'week'|'month'|null
+  startTimeOfDay: text("start_time_of_day").notNull(), // 'HH:MM'
+  endTimeOfDay: text("end_time_of_day").notNull(),
+  daysOffPerWeek: integer("days_off_per_week").notNull(),
+  trainingTopics: text("training_topics").array().notNull(),
+  completionOutcome: text("completion_outcome").notNull(),
+  notesForGuardians: text("notes_for_guardians"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const scamReports = pgTable("scam_reports", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -340,3 +377,4 @@ export type NotificationLog = typeof notificationLog.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type GuardianConsent = typeof guardianConsents.$inferSelect;
+export type ApprenticeshipTerms = typeof apprenticeshipTerms.$inferSelect;

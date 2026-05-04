@@ -177,6 +177,132 @@ export default async function NewJobPage({
           </span>
         </label>
 
+        <fieldset className="space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-4">
+          <legend className="px-1 text-xs uppercase tracking-wider text-[var(--color-muted)]">
+            Apprenticeship terms — required only if type is apprenticeship
+          </legend>
+          <p className="text-xs text-[var(--color-muted)]">
+            These terms are shown to every applicant before they apply, and
+            we render them as a printable agreement once you agree on a
+            placement. Be specific — vague terms cause disputes later.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Duration (months)">
+              <input
+                type="number"
+                name="durationMonths"
+                min={1}
+                max={60}
+                placeholder="e.g. 12"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Hours per week">
+              <input
+                type="number"
+                name="hoursPerWeek"
+                min={1}
+                max={60}
+                placeholder="e.g. 35"
+                className={inputCls}
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Daily start time">
+              <input
+                type="time"
+                name="startTimeOfDay"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Daily end time">
+              <input
+                type="time"
+                name="endTimeOfDay"
+                className={inputCls}
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Days off per week">
+              <input
+                type="number"
+                name="daysOffPerWeek"
+                min={0}
+                max={7}
+                defaultValue={1}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Stipend (GHS, optional)">
+              <input
+                type="number"
+                name="stipendAmountGhs"
+                min={0}
+                placeholder="e.g. 200"
+                className={inputCls}
+              />
+            </Field>
+          </div>
+
+          <Field label="Stipend period">
+            <select
+              name="stipendPeriod"
+              defaultValue=""
+              className={inputCls}
+            >
+              <option value="">No stipend</option>
+              <option value="week">Per week</option>
+              <option value="month">Per month</option>
+            </select>
+          </Field>
+
+          <Field
+            label="Training topics covered"
+            help="Comma-separated. What will the apprentice learn? E.g. cutting, sewing, customer measurement, machine maintenance."
+          >
+            <input
+              name="trainingTopics"
+              placeholder="cutting, sewing, customer measurement, machine maintenance"
+              className={inputCls}
+            />
+          </Field>
+
+          <Field
+            label="What happens at completion"
+            help="What does the apprentice walk away with? A certificate? Help to set up their own shop? Continued employment?"
+          >
+            <textarea
+              name="completionOutcome"
+              rows={2}
+              maxLength={400}
+              placeholder="On completion, apprentice receives a workshop-issued certificate of mastery and is supported to set up their own shop."
+              className={`${inputCls} resize-y`}
+            />
+          </Field>
+
+          <Field label="Notes for guardians (optional)">
+            <textarea
+              name="notesForGuardians"
+              rows={2}
+              maxLength={800}
+              placeholder="Any specific message to a guardian who may approve an under-18 apprentice."
+              className={`${inputCls} resize-y`}
+            />
+          </Field>
+
+          <p className="text-xs text-[var(--color-muted)]">
+            Reminder: under-18 apprentices may not work in hazardous trades,
+            and may not work between 8pm and 6am, regardless of guardian
+            consent. The Children&apos;s Act 1998 (Act 560) and the Hazardous
+            Child Labour Activity Framework apply.
+          </p>
+        </fieldset>
+
         <button
           type="submit"
           className="w-full rounded-md bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"
