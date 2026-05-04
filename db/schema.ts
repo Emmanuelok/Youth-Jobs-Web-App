@@ -180,9 +180,35 @@ export const auditLogs = pgTable("audit_logs", {
     .defaultNow(),
 });
 
+/**
+ * AI-generated CVs. We keep history rather than overwriting so candidates
+ * can compare versions and we can audit prompts/usage if a CV ever needs
+ * to be defended or explained.
+ */
+export const generatedCvs = pgTable(
+  "generated_cvs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    payload: jsonb("payload").notNull(), // Cv shape — see lib/ai/cv.ts
+    promptInputs: jsonb("prompt_inputs"), // what we sent the model, redacted of PII we didn't need
+    modelId: text("model_id").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    cacheReadTokens: integer("cache_read_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("generated_cvs_candidate_created_idx").on(t.candidateId, t.createdAt)],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type CandidateProfile = typeof candidateProfiles.$inferSelect;
 export type EmployerProfile = typeof employerProfiles.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
 export type Application = typeof applications.$inferSelect;
+export type GeneratedCv = typeof generatedCvs.$inferSelect;

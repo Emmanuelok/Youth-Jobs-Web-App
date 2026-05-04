@@ -43,6 +43,14 @@ export async function EngineHeader() {
           >
             Find work
           </Link>
+          {role === "candidate" && (
+            <Link
+              href="/cv"
+              className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+            >
+              My CV
+            </Link>
+          )}
           {role === "employer" && (
             <Link
               href="/employer"
