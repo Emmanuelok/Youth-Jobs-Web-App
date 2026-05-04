@@ -173,6 +173,19 @@ export default async function CandidateOnboardingPage({
           />
         </Field>
 
+        <label className="flex items-start gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm">
+          <input
+            type="checkbox"
+            name="alertsEnabled"
+            defaultChecked={existing ? existing.alertsEnabled : true}
+            className="mt-1"
+          />
+          <span>
+            Send me a daily SMS digest of new jobs near me. Free for you. You
+            can turn this off any time.
+          </span>
+        </label>
+
         <button
           type="submit"
           className="w-full rounded-md bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"

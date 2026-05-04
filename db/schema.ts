@@ -47,6 +47,9 @@ export const candidateProfiles = pgTable("candidate_profiles", {
   yearOfBirth: integer("year_of_birth").notNull(),
   guardianContact: text("guardian_contact"), // required when isUnder18
   bio: text("bio"),
+  alertsEnabled: boolean("alerts_enabled").notNull().default(true),
+  notifyChannel: text("notify_channel").notNull().default("sms"), // 'sms' | 'whatsapp' | 'none'
+  lastAlertedAt: timestamp("last_alerted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -211,4 +214,28 @@ export type CandidateProfile = typeof candidateProfiles.$inferSelect;
 export type EmployerProfile = typeof employerProfiles.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
 export type Application = typeof applications.$inferSelect;
+/**
+ * Outbound job-alert digest log. Append-only — used for de-dup, reporting,
+ * and to defend "what was sent" if a user reports a problem.
+ */
+export const notificationLog = pgTable(
+  "notification_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channel: text("channel").notNull(), // 'sms' | 'whatsapp'
+    body: text("body").notNull(),
+    jobIds: jsonb("job_ids").notNull(), // string[]
+    providerOk: boolean("provider_ok").notNull(),
+    providerError: text("provider_error"),
+    sentAt: timestamp("sent_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("notif_log_candidate_sent_idx").on(t.candidateId, t.sentAt)],
+);
+
 export type GeneratedCv = typeof generatedCvs.$inferSelect;
+export type NotificationLog = typeof notificationLog.$inferSelect;

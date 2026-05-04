@@ -6,7 +6,7 @@ import { getDb } from "@/db/client";
 import { candidateProfiles, users } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { candidateProfileSchema } from "@/lib/validation";
-import { num, str, strs, withError } from "@/lib/forms";
+import { bool, num, str, strs, withError } from "@/lib/forms";
 
 export async function saveCandidateProfileAction(formData: FormData) {
   const session = await getSession();
@@ -41,6 +41,7 @@ export async function saveCandidateProfileAction(formData: FormData) {
   const data = parsed.data;
   const age = new Date().getFullYear() - data.yearOfBirth;
   const isUnder18 = age < 18;
+  const alertsEnabled = bool(formData, "alertsEnabled");
 
   if (isUnder18 && !data.guardianContact) {
     redirect(
@@ -73,6 +74,7 @@ export async function saveCandidateProfileAction(formData: FormData) {
       yearOfBirth: data.yearOfBirth,
       guardianContact: data.guardianContact,
       bio: data.bio,
+      alertsEnabled,
     })
     .onConflictDoUpdate({
       target: candidateProfiles.userId,
@@ -87,6 +89,7 @@ export async function saveCandidateProfileAction(formData: FormData) {
         yearOfBirth: data.yearOfBirth,
         guardianContact: data.guardianContact,
         bio: data.bio,
+        alertsEnabled,
         updatedAt: new Date(),
       },
     });
