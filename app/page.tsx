@@ -274,12 +274,17 @@ export default function HomePage() {
       <footer>
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-10 text-xs text-[var(--color-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
-            © {new Date().getFullYear()} Ghana Youth Jobs · Early product
-            preview · Not yet accepting applications.
+            © {new Date().getFullYear()} Ghana Youth Jobs · Built mobile-first and low-data ·
+            Free for job seekers, always.
           </p>
-          <p>
-            Built mobile-first and low-data. Free for job seekers — always.
-          </p>
+          <nav className="flex gap-4">
+            <a href="/privacy" className="hover:text-[var(--color-text)]">
+              Privacy
+            </a>
+            <a href="/terms" className="hover:text-[var(--color-text)]">
+              Terms
+            </a>
+          </nav>
         </div>
       </footer>
     </main>
