@@ -58,12 +58,20 @@ export default async function EmployerDashboardPage() {
             </span>
           )}
         </div>
-        <Link
-          href="/employer/jobs/new"
-          className="rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"
-        >
-          Post an opportunity
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/onboarding/employer"
+            className="rounded-md border border-[var(--color-border)] px-4 py-2.5 text-sm font-semibold hover:border-[var(--color-primary-strong)]"
+          >
+            Edit profile
+          </Link>
+          <Link
+            href="/employer/jobs/new"
+            className="rounded-md bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"
+          >
+            Post an opportunity
+          </Link>
+        </div>
       </header>
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-[var(--color-muted)]">

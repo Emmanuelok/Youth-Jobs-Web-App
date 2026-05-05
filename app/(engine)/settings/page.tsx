@@ -88,6 +88,20 @@ export default async function SettingsPage({
           </Row>
           {u.isUnder18 && <Row label="Under 18">yes — guardian approval applies</Row>}
         </dl>
+        {(u.role === "candidate" || u.role === "employer") && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href={
+                u.role === "candidate"
+                  ? "/onboarding/candidate"
+                  : "/onboarding/employer"
+              }
+              className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-xs hover:border-[var(--color-primary-strong)]"
+            >
+              Edit {u.role === "candidate" ? "my profile" : "organisation profile"}
+            </a>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
