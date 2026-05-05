@@ -10,11 +10,22 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { generateCv } from "@/lib/ai/cv";
+import { checkLimit } from "@/lib/ratelimit";
 import { str, withError } from "@/lib/forms";
 
 export async function generateCvAction(formData: FormData) {
   const session = await getSession();
   if (!session.userId) redirect("/sign-in?intent=candidate");
+
+  const limit = await checkLimit("cv_generate", session.userId);
+  if (!limit.ok) {
+    redirect(
+      withError(
+        "/cv",
+        `You can regenerate your CV again in about ${Math.ceil(limit.resetSeconds / 60)} minutes.`,
+      ),
+    );
+  }
 
   const rawNotes = str(formData, "rawNotes").slice(0, 2000) || undefined;
   const db = getDb();

@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { messageBodySchema } from "@/lib/validation";
+import { checkLimit } from "@/lib/ratelimit";
 import { screenMessage } from "@/lib/safety/messageScreening";
 import { str, withError } from "@/lib/forms";
 
@@ -25,6 +26,16 @@ export async function startConversationAction(formData: FormData) {
   if (!session.userId) redirect("/sign-in?intent=employer");
   if (session.role === "candidate") {
     redirect(withError("/", "Only employers can start conversations."));
+  }
+
+  const startLimit = await checkLimit("conversation_start", session.userId);
+  if (!startLimit.ok) {
+    redirect(
+      withError(
+        "/employer",
+        `You're starting many conversations very quickly. Try again in about ${Math.ceil(startLimit.resetSeconds / 60)} minutes.`,
+      ),
+    );
   }
 
   const jobId = str(formData, "jobId");
@@ -125,6 +136,16 @@ export async function sendReplyAction(formData: FormData) {
 
   const conversationId = str(formData, "conversationId");
   const body = str(formData, "body");
+
+  const limit = await checkLimit("message_send", session.userId);
+  if (!limit.ok) {
+    redirect(
+      withError(
+        `/messages/${conversationId}`,
+        `You're sending messages very quickly. Try again in about ${Math.ceil(limit.resetSeconds / 60)} minutes.`,
+      ),
+    );
+  }
 
   const parsed = messageBodySchema.safeParse(body);
   if (!parsed.success) {

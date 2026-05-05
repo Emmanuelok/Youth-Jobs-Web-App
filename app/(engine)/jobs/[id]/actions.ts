@@ -14,6 +14,7 @@ import {
 import { getSession } from "@/lib/auth/session";
 import { hasApprovedConsent } from "@/lib/consent";
 import { notifyApplicationReceived } from "@/lib/notify/events";
+import { checkLimit } from "@/lib/ratelimit";
 import { scamReportSchema } from "@/lib/validation";
 import { bool, str, withError, withFlash } from "@/lib/forms";
 
@@ -24,6 +25,16 @@ export async function applyToJobAction(formData: FormData) {
   const session = await getSession();
   if (!session.userId) {
     redirect(`/sign-in?intent=candidate`);
+  }
+
+  const limit = await checkLimit("apply", session.userId);
+  if (!limit.ok) {
+    redirect(
+      withError(
+        `/jobs/${jobId}`,
+        `You're applying very quickly. Try again in about ${Math.ceil(limit.resetSeconds / 60)} minutes.`,
+      ),
+    );
   }
 
   const db = getDb();
@@ -128,6 +139,19 @@ export async function applyToJobAction(formData: FormData) {
 
 export async function reportJobAction(formData: FormData) {
   const session = await getSession();
+
+  // Use phone-or-IP-equivalent identifier when no session: fall back to
+  // the jobId so anonymous spam against one job is bounded.
+  const limitId = session.userId ?? `anon:${str(formData, "jobId")}`;
+  const limit = await checkLimit("scam_report", limitId);
+  if (!limit.ok) {
+    redirect(
+      withError(
+        `/jobs/${str(formData, "jobId")}`,
+        "Too many reports for now. Try again later.",
+      ),
+    );
+  }
 
   const parsed = scamReportSchema.safeParse({
     jobId: str(formData, "jobId"),

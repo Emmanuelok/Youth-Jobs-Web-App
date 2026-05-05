@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { sendSms } from "@/lib/auth/sms";
+import { checkLimit } from "@/lib/ratelimit";
 import { phoneSchema } from "@/lib/validation";
 import { str, withError, withFlash } from "@/lib/forms";
 
@@ -19,6 +20,16 @@ const CONSENT_TTL_DAYS = 14;
 export async function requestGuardianConsentAction(formData: FormData) {
   const session = await getSession();
   if (!session.userId) redirect("/sign-in?intent=candidate");
+
+  const limit = await checkLimit("guardian_request", session.userId);
+  if (!limit.ok) {
+    redirect(
+      withError(
+        "/onboarding/guardian",
+        `Too many requests in a short time. Wait about ${Math.ceil(limit.resetSeconds / 60)} minutes before sending another link.`,
+      ),
+    );
+  }
 
   const guardianName = str(formData, "guardianName").trim();
   const guardianRelation = str(formData, "guardianRelation");
