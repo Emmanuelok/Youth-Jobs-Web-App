@@ -73,17 +73,27 @@ export default async function EmployerJobDetailPage({
             {job.type} · {job.city}, {job.region} · status {job.status.replace("_", " ")}
           </p>
         </div>
-        {job.status === "published" && (
-          <form action={closeJobAction}>
-            <input type="hidden" name="jobId" value={job.id} />
-            <button
-              type="submit"
-              className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-xs hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+        <div className="flex flex-wrap gap-2">
+          {job.status !== "closed" && (
+            <Link
+              href={`/employer/jobs/${job.id}/edit`}
+              className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-xs hover:border-[var(--color-primary-strong)]"
             >
-              Close this post
-            </button>
-          </form>
-        )}
+              Edit post
+            </Link>
+          )}
+          {job.status === "published" && (
+            <form action={closeJobAction}>
+              <input type="hidden" name="jobId" value={job.id} />
+              <button
+                type="submit"
+                className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-xs hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+              >
+                Close this post
+              </button>
+            </form>
+          )}
+        </div>
       </header>
 
       {sp.error && (

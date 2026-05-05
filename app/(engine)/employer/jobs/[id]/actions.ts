@@ -5,7 +5,10 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { applications, auditLogs, jobs } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
-import { notifyApplicationStatusChanged } from "@/lib/notify/events";
+import {
+  notifyApplicantsOfClosedJob,
+  notifyApplicationStatusChanged,
+} from "@/lib/notify/events";
 import { str, withError } from "@/lib/forms";
 
 export async function setApplicationStatusAction(formData: FormData) {
@@ -80,6 +83,10 @@ export async function closeJobAction(formData: FormData) {
     action: "job.close",
     entityType: "job",
     entityId: jobId,
+  });
+
+  await notifyApplicantsOfClosedJob(jobId).catch((err) => {
+    console.error("notifyApplicantsOfClosedJob failed:", err);
   });
 
   redirect(`/employer/jobs/${jobId}`);

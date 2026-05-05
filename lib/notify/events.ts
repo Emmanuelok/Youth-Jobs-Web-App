@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   applications,
@@ -210,4 +210,46 @@ export async function notifyJobDecision(
     body,
     jobIds: [jobId],
   });
+}
+
+/**
+ * Fan-out: tell every non-terminal applicant when an employer closes a job.
+ * Applicants in 'hired', 'rejected', or 'withdrawn' don't need to know.
+ */
+export async function notifyApplicantsOfClosedJob(jobId: string) {
+  const db = getDb();
+  const [job] = await db
+    .select({ title: jobs.title })
+    .from(jobs)
+    .where(eq(jobs.id, jobId))
+    .limit(1);
+  if (!job) return;
+
+  const recipients = await db
+    .select({
+      candidateId: applications.candidateId,
+      phone: users.phone,
+    })
+    .from(applications)
+    .innerJoin(users, eq(users.id, applications.candidateId))
+    .where(
+      and(
+        eq(applications.jobId, jobId),
+        or(
+          eq(applications.status, "submitted"),
+          eq(applications.status, "shortlisted"),
+        )!,
+      ),
+    );
+
+  for (const r of recipients) {
+    const body = `The opportunity "${trim(job.title, 40)}" you applied to is no longer accepting applicants. Browse other opportunities: ${APP_URL}/jobs`;
+    await deliver({
+      recipientUserId: r.candidateId,
+      recipientPhone: r.phone,
+      kind: "job_closed",
+      body,
+      jobIds: [jobId],
+    });
+  }
 }
