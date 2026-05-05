@@ -14,6 +14,7 @@ import {
   jobPostSchema,
 } from "@/lib/validation";
 import { HAZARDOUS_CATEGORIES_DEFAULT } from "@/lib/ghana";
+import { claimIdempotencyKey } from "@/lib/idempotency";
 import { checkLimit } from "@/lib/ratelimit";
 import { bool, num, str, strs, withError } from "@/lib/forms";
 
@@ -32,6 +33,12 @@ export async function createJobAction(formData: FormData) {
         `Too many posts in the last hour. Try again in about ${Math.ceil(limit.resetSeconds / 60)} minutes.`,
       ),
     );
+  }
+
+  const idemKey = str(formData, "idemKey");
+  const firstClaim = await claimIdempotencyKey(idemKey);
+  if (!firstClaim) {
+    redirect("/employer");
   }
 
   const db = getDb();

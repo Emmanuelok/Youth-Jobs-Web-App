@@ -8,6 +8,7 @@ import {
   jobs,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { newIdempotencyKey } from "@/lib/idempotency";
 import { startConversationAction } from "../../../messages/actions";
 import { closeJobAction, setApplicationStatusAction } from "./actions";
 
@@ -162,6 +163,7 @@ export default async function EmployerJobDetailPage({
                 >
                   <input type="hidden" name="jobId" value={job.id} />
                   <input type="hidden" name="candidateId" value={a.candidateId} />
+                  <input type="hidden" name="idemKey" value={newIdempotencyKey()} />
                   <label className="block text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
                     Send a message
                   </label>

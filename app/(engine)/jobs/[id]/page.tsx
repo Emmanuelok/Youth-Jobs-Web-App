@@ -9,6 +9,7 @@ import {
   jobs,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { newIdempotencyKey } from "@/lib/idempotency";
 import { applyToJobAction, reportJobAction } from "./actions";
 
 const inputCls =
@@ -230,6 +231,7 @@ export default async function JobDetailPage({
 
         <form action={reportJobAction} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           <input type="hidden" name="jobId" value={job.id} />
+          <input type="hidden" name="idemKey" value={newIdempotencyKey()} />
           <p className="text-sm font-semibold">Report this post</p>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
             See something off? Tell us — your report is anonymous to the

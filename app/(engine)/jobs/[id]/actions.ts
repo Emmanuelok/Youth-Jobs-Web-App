@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { hasApprovedConsent } from "@/lib/consent";
+import { claimIdempotencyKey } from "@/lib/idempotency";
 import { notifyApplicationReceived } from "@/lib/notify/events";
 import { checkLimit } from "@/lib/ratelimit";
 import { scamReportSchema } from "@/lib/validation";
@@ -149,6 +150,17 @@ export async function reportJobAction(formData: FormData) {
       withError(
         `/jobs/${str(formData, "jobId")}`,
         "Too many reports for now. Try again later.",
+      ),
+    );
+  }
+
+  const idemKey = str(formData, "idemKey");
+  const firstClaim = await claimIdempotencyKey(idemKey);
+  if (!firstClaim) {
+    redirect(
+      withFlash(
+        `/jobs/${str(formData, "jobId")}`,
+        "Thanks — we already received that report.",
       ),
     );
   }

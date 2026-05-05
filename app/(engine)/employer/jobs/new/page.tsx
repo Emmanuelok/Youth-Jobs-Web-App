@@ -9,6 +9,7 @@ import {
   JOB_CATEGORIES,
   PRIMARY_CITIES,
 } from "@/lib/ghana";
+import { newIdempotencyKey } from "@/lib/idempotency";
 import { createJobAction } from "./actions";
 
 const inputCls =
@@ -56,6 +57,7 @@ export default async function NewJobPage({
       )}
 
       <form action={createJobAction} className="mt-6 space-y-5">
+        <input type="hidden" name="idemKey" value={newIdempotencyKey()} />
         <Field label="Type">
           <select name="type" required defaultValue="" className={inputCls}>
             <option value="" disabled>Choose</option>

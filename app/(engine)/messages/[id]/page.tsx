@@ -10,6 +10,7 @@ import {
   messages,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
+import { newIdempotencyKey } from "@/lib/idempotency";
 import {
   archiveConversationAction,
   markConversationRead,
@@ -166,6 +167,7 @@ export default async function ThreadPage({
         className="mt-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
       >
         <input type="hidden" name="conversationId" value={convo.id} />
+        <input type="hidden" name="idemKey" value={newIdempotencyKey()} />
         <label htmlFor="body" className="sr-only">
           Reply
         </label>

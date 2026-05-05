@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { messageBodySchema } from "@/lib/validation";
+import { claimIdempotencyKey } from "@/lib/idempotency";
 import { checkLimit } from "@/lib/ratelimit";
 import { screenMessage } from "@/lib/safety/messageScreening";
 import { str, withError } from "@/lib/forms";
@@ -36,6 +37,13 @@ export async function startConversationAction(formData: FormData) {
         `You're starting many conversations very quickly. Try again in about ${Math.ceil(startLimit.resetSeconds / 60)} minutes.`,
       ),
     );
+  }
+
+  const idemKey = str(formData, "idemKey");
+  const firstClaim = await claimIdempotencyKey(idemKey);
+  if (!firstClaim) {
+    // Duplicate submission — already started a conversation; redirect to inbox.
+    redirect("/messages");
   }
 
   const jobId = str(formData, "jobId");
@@ -145,6 +153,13 @@ export async function sendReplyAction(formData: FormData) {
         `You're sending messages very quickly. Try again in about ${Math.ceil(limit.resetSeconds / 60)} minutes.`,
       ),
     );
+  }
+
+  const idemKey = str(formData, "idemKey");
+  const firstClaim = await claimIdempotencyKey(idemKey);
+  if (!firstClaim) {
+    // Duplicate submit — first one already inserted; redirect to thread.
+    redirect(`/messages/${conversationId}`);
   }
 
   const parsed = messageBodySchema.safeParse(body);
