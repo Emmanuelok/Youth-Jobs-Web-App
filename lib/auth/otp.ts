@@ -2,6 +2,7 @@ import { createHash, randomInt } from "node:crypto";
 import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { otpCodes } from "@/db/schema";
+import { log } from "@/lib/log";
 import { sendSms } from "./sms";
 
 const OTP_LENGTH = 6;
@@ -42,6 +43,7 @@ export async function issueOtp(
     );
 
   if ((recent[0]?.count ?? 0) >= MAX_REQUESTS_PER_WINDOW) {
+    log.warn("otp.rate_limited", { phone, windowHours: 1 });
     return { ok: false, reason: "rate_limited" };
   }
 
@@ -56,6 +58,7 @@ export async function issueOtp(
     phone,
     `Your Ghana Youth Jobs code is ${code}. It expires in 10 minutes. We will never ask for money to apply for a job.`,
   );
+  log.info("otp.issued", { phone });
 
   return { ok: true };
 }
@@ -77,9 +80,16 @@ export async function verifyOtp(
     .orderBy(desc(otpCodes.createdAt))
     .limit(1);
 
-  if (!latest) return { ok: false, reason: "invalid" };
-  if (latest.attempts >= MAX_ATTEMPTS) return { ok: false, reason: "exhausted" };
+  if (!latest) {
+    log.warn("otp.verify_failed", { phone, reason: "no_active_code" });
+    return { ok: false, reason: "invalid" };
+  }
+  if (latest.attempts >= MAX_ATTEMPTS) {
+    log.warn("otp.verify_failed", { phone, reason: "exhausted" });
+    return { ok: false, reason: "exhausted" };
+  }
   if (latest.expiresAt.getTime() < Date.now()) {
+    log.warn("otp.verify_failed", { phone, reason: "expired" });
     return { ok: false, reason: "expired" };
   }
 
@@ -89,6 +99,11 @@ export async function verifyOtp(
       .update(otpCodes)
       .set({ attempts: latest.attempts + 1 })
       .where(eq(otpCodes.id, latest.id));
+    log.warn("otp.verify_failed", {
+      phone,
+      reason: "wrong_code",
+      attempt: latest.attempts + 1,
+    });
     return { ok: false, reason: "invalid" };
   }
 
@@ -96,5 +111,6 @@ export async function verifyOtp(
     .update(otpCodes)
     .set({ consumedAt: new Date() })
     .where(eq(otpCodes.id, latest.id));
+  log.info("otp.verified", { phone });
   return { ok: true };
 }

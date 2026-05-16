@@ -8,6 +8,8 @@
  * provider (360dialog, Twilio, or Meta direct) by setting WHATSAPP_PROVIDER.
  */
 
+import { log } from "@/lib/log";
+
 export type WhatsAppTemplate =
   | "otp"
   | "application_received"
@@ -26,22 +28,21 @@ export async function sendWhatsApp(
   switch (provider) {
     case "stub":
       if (process.env.NODE_ENV !== "production") {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[whatsapp:stub] -> ${toE164} template=${template} vars=${JSON.stringify(variables)}`,
-        );
+        log.info("whatsapp.stub.send", { to: toE164, template, variables });
       }
       return { ok: true };
 
     case "360dialog":
     case "twilio":
     case "meta":
+      log.warn("whatsapp.provider_not_implemented", { provider, template });
       return {
         ok: false,
         error: `WHATSAPP_PROVIDER="${provider}" is not yet implemented`,
       };
 
     default:
+      log.warn("whatsapp.provider_unknown", { provider });
       return { ok: false, error: `Unknown WHATSAPP_PROVIDER "${provider}"` };
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { runJobAlerts } from "@/lib/notify/run";
 
 /**
@@ -15,6 +16,7 @@ export const maxDuration = 60; // seconds — enough for ~200 candidates with st
 export async function GET(request: Request) {
   const expected = process.env.CRON_SECRET;
   if (!expected) {
+    log.error("cron.misconfigured", { reason: "CRON_SECRET not set" });
     return NextResponse.json(
       { ok: false, error: "CRON_SECRET is not configured" },
       { status: 500 },
@@ -23,6 +25,7 @@ export async function GET(request: Request) {
 
   const provided = request.headers.get("authorization");
   if (provided !== `Bearer ${expected}`) {
+    log.warn("cron.unauthorized", { hasHeader: !!provided });
     return NextResponse.json(
       { ok: false, error: "Unauthorized" },
       { status: 401 },
@@ -33,6 +36,9 @@ export async function GET(request: Request) {
     const result = await runJobAlerts();
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
+    log.error("cron.run_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json(
       {
         ok: false,

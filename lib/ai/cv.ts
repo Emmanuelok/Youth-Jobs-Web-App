@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { log } from "@/lib/log";
 import { getAnthropic } from "./client";
 
 /**
@@ -121,24 +122,46 @@ export async function generateCv(input: {
 }): Promise<CvGenerationResult> {
   const client = getAnthropic();
   const userPrompt = buildUserPrompt(input);
+  const start = Date.now();
 
-  const response = await client.messages.parse({
-    model: "claude-opus-4-7",
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    output_config: {
-      effort: "high",
-      format: zodOutputFormat(cvSchema),
-    },
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userPrompt }],
-  });
+  let response;
+  try {
+    response = await client.messages.parse({
+      model: "claude-opus-4-7",
+      max_tokens: 16000,
+      thinking: { type: "adaptive" },
+      output_config: {
+        effort: "high",
+        format: zodOutputFormat(cvSchema),
+      },
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+  } catch (err) {
+    log.error("cv.generate_failed", {
+      durationMs: Date.now() - start,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
 
   if (!response.parsed_output) {
+    log.error("cv.generate_unparseable", {
+      durationMs: Date.now() - start,
+      stopReason: response.stop_reason,
+    });
     throw new Error(
       `CV generation did not return a parseable structured response (stop_reason=${response.stop_reason}).`,
     );
   }
+
+  log.info("cv.generated", {
+    durationMs: Date.now() - start,
+    model: response.model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+  });
 
   return {
     cv: response.parsed_output,

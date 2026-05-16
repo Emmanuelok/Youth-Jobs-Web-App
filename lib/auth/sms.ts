@@ -11,6 +11,8 @@
  * Never log full OTP codes in production. The stub gates on NODE_ENV.
  */
 
+import { log } from "@/lib/log";
+
 export type SmsResult = { ok: true } | { ok: false; error: string };
 
 export async function sendSms(toE164: string, body: string): Promise<SmsResult> {
@@ -19,24 +21,35 @@ export async function sendSms(toE164: string, body: string): Promise<SmsResult> 
   switch (provider) {
     case "stub":
       if (process.env.NODE_ENV !== "production") {
-        // eslint-disable-next-line no-console
-        console.log(`[sms:stub] -> ${toE164}: ${body}`);
+        log.info("sms.stub.send", { to: toE164, body });
       } else {
-        // eslint-disable-next-line no-console
-        console.log(`[sms:stub] -> ${toE164}: <redacted>`);
+        log.info("sms.stub.send", { to: toE164, body: "<redacted>" });
       }
       return { ok: true };
 
-    case "arkesel":
-      return sendViaArkesel(toE164, body);
+    case "arkesel": {
+      const result = await sendViaArkesel(toE164, body);
+      if (result.ok) {
+        log.info("sms.send", { provider, to: toE164, bytes: body.length });
+      } else {
+        log.error("sms.send_failed", {
+          provider,
+          to: toE164,
+          error: result.error,
+        });
+      }
+      return result;
+    }
 
     case "hubtel":
+      log.warn("sms.provider_not_implemented", { provider });
       return {
         ok: false,
         error: 'SMS_PROVIDER="hubtel" is not yet implemented',
       };
 
     default:
+      log.warn("sms.provider_unknown", { provider });
       return { ok: false, error: `Unknown SMS_PROVIDER "${provider}"` };
   }
 }

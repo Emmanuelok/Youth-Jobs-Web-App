@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { log } from "@/lib/log";
 
 /**
  * Idempotency keys for POST-style server actions that have no natural
@@ -19,10 +20,9 @@ function client(): Redis | null {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
     if (!warned) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[idempotency] Upstash not configured — duplicate-submit protection DISABLED.",
-      );
+      log.warn("idempotency.disabled", {
+        reason: "UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set",
+      });
       warned = true;
     }
     return null;
@@ -57,10 +57,18 @@ export async function claimIdempotencyKey(
       nx: true,
       ex: ttlSeconds,
     });
-    return result === "OK";
+    const claimed = result === "OK";
+    if (!claimed) log.warn("idempotency.duplicate", { keyHash: hashKey(key) });
+    return claimed;
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[idempotency] claim failed; falling open:", err);
+    log.error("idempotency.claim_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return true;
   }
+}
+
+function hashKey(key: string): string {
+  // Short prefix is fine — we just want a non-PII handle for log correlation.
+  return key.slice(0, 8);
 }

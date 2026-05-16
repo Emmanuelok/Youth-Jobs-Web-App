@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { log } from "@/lib/log";
 
 /**
  * Per-action rate limits. Each name maps to its own sliding window.
@@ -33,10 +34,9 @@ function buildLimiters() {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
     if (!warned) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[ratelimit] Upstash credentials not set — rate limiting is DISABLED. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in production.",
-      );
+      log.warn("ratelimit.disabled", {
+        reason: "UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set",
+      });
       warned = true;
     }
     return null;
@@ -80,10 +80,14 @@ export async function checkLimit(
       1,
       Math.ceil((result.reset - Date.now()) / 1000),
     );
+    log.warn("ratelimit.blocked", { name, identifier, resetSeconds });
     return { ok: false, reason: "rate_limited", resetSeconds };
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[ratelimit] check failed; falling open:", err);
+    log.error("ratelimit.check_failed", {
+      name,
+      identifier,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return { ok: true };
   }
 }

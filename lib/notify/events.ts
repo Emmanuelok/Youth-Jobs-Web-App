@@ -9,6 +9,7 @@ import {
   users,
 } from "@/db/schema";
 import { sendSms } from "@/lib/auth/sms";
+import { log } from "@/lib/log";
 
 /**
  * Transactional, single-shot notifications. Distinct from the daily digest
@@ -47,6 +48,19 @@ async function deliver(opts: {
     providerOk: result.ok,
     providerError: result.ok ? null : result.error,
   });
+  if (result.ok) {
+    log.info("notify.delivered", {
+      kind: opts.kind,
+      to: opts.recipientUserId,
+      jobIds: opts.jobIds,
+    });
+  } else {
+    log.error("notify.failed", {
+      kind: opts.kind,
+      to: opts.recipientUserId,
+      error: result.error,
+    });
+  }
 }
 
 function trim(s: string, n: number): string {

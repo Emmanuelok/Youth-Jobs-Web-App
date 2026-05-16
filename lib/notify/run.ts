@@ -7,6 +7,7 @@ import {
   users,
 } from "@/db/schema";
 import { sendSms } from "@/lib/auth/sms";
+import { log } from "@/lib/log";
 import { sendWhatsApp } from "./whatsapp";
 import { scoreJobsForCandidate, type MatchableJob } from "./match";
 import { buildSmsDigest } from "./digest";
@@ -26,6 +27,7 @@ export async function runJobAlerts(): Promise<AlertRunResult> {
   const start = Date.now();
   const db = getDb();
   const now = new Date();
+  log.info("digest.run_started", { at: now.toISOString() });
 
   const recentJobs = await db
     .select({
@@ -152,13 +154,15 @@ export async function runJobAlerts(): Promise<AlertRunResult> {
     await markAlerted(c.userId, now);
   }
 
-  return {
+  const summary = {
     candidatesConsidered: candidates.length,
     digestsSent,
     digestsFailed,
     candidatesSkippedNoMatch,
     durationMs: Date.now() - start,
   };
+  log.info("digest.run_completed", summary);
+  return summary;
 }
 
 async function markAlerted(userId: string, at: Date): Promise<void> {
