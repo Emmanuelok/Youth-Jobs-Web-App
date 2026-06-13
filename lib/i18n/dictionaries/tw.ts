@@ -84,4 +84,15 @@ export const tw: Messages = {
     back: "San kɔ",
     loading: "Ɛreba…",
   },
+  errors: {
+    notFoundTitle: "Wonhuu krataafa no",
+    notFoundBody:
+      "Yɛanhu saa krataafa no. Ebia wɔayi afi hɔ, anaa adwuma no ato mu.",
+    errorTitle: "Biribi anyɛ yie",
+    errorBody:
+      "Kafra — biribi asɛe wɔ yɛn fa. Yɛsrɛ sɛ sɔ hwɛ bio. Sɛ ɛkɔ so a, san bra akyiri yi.",
+    tryAgain: "Sɔ hwɛ bio",
+    goHome: "Kɔ fie",
+    browseJobs: "Hwehwɛ adwuma",
+  },
 };

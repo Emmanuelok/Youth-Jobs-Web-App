@@ -76,6 +76,17 @@ export const en = {
     back: "Back",
     loading: "Loading…",
   },
+  errors: {
+    notFoundTitle: "Page not found",
+    notFoundBody:
+      "We couldn't find that page. It may have moved, or the opportunity may have closed.",
+    errorTitle: "Something went wrong",
+    errorBody:
+      "Sorry — something broke on our side. Please try again. If it keeps happening, check back a bit later.",
+    tryAgain: "Try again",
+    goHome: "Go home",
+    browseJobs: "Browse opportunities",
+  },
 };
 
 export type Messages = typeof en;
