@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegister } from "./_components/sw-register";
+import { getLocale } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Ghana Youth Jobs — Real opportunities for Ghana's youth",
@@ -31,13 +32,14 @@ export const viewport: Viewport = {
   themeColor: "#0b1410",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body>
         {children}
         <ServiceWorkerRegister />

@@ -75,6 +75,16 @@ npm run db:migrate           # applies against $DATABASE_URL
 
 `GET /api/health` returns `{ ok, db, durationMs, commit, region }`. Returns 200 when DB is reachable, 503 otherwise. Point your uptime monitor here.
 
+### Localization (i18n)
+
+UI locales live in `lib/i18n/`. English (`en`) is the source of truth — its dictionary shape *is* the `Messages` type, so every other locale must provide every key or the build fails. Locale resolves from the `gyj_locale` cookie, then `Accept-Language`, then English. A no-JS language switcher (server action + cookie) is in the header and landing footer.
+
+> ⚠️ **Twi (`tw`) is a DRAFT translation and must be reviewed by a native Akan speaker before launch** — especially the `safety.*` strings, where a mistranslation is worse than English. Ga, Ewe, Dagbani, and Hausa are typed-ready but intentionally not in `SELECTABLE_LOCALES` until QA'd. Adding a locale: create `lib/i18n/dictionaries/<code>.ts` satisfying `Messages`, register it in `lib/i18n/index.ts` + `locales.ts`.
+
+### PWA / offline
+
+`app/manifest.ts` makes the app installable. `public/sw.js` caches only immutable build assets and serves `/offline` when navigation fails — it never caches authenticated/PII pages. Bump `CACHE_VERSION` in `sw.js` to invalidate on deploy.
+
 ### Rate limits (Upstash)
 
 | Surface | Limit |

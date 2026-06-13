@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { newIdempotencyKey } from "@/lib/idempotency";
+import { SafetyNotice } from "@/app/_components/safety-notice";
 import {
   archiveConversationAction,
   markConversationRead,
@@ -104,11 +105,7 @@ export default async function ThreadPage({
         </form>
       </header>
 
-      <div className="mt-4 rounded-md border border-[var(--color-accent)]/40 bg-[var(--color-surface)] px-3 py-2 text-xs text-[var(--color-muted)]">
-        <strong className="text-[var(--color-accent)]">Stay safe:</strong>{" "}
-        Never send money or share OTP codes. Meet first interviews in a public
-        place during the day. Tell a trusted person where you are going.
-      </div>
+      <SafetyNotice variant="message" />
 
       {sp.error && (
         <div className="mt-4 rounded-md border border-[var(--color-danger)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-danger)]">

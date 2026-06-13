@@ -64,7 +64,11 @@ const audiences = [
   "Training centres and NGOs tracking outcomes",
 ];
 
-export default function HomePage() {
+import { getTranslations } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/app/_components/language-switcher";
+
+export default async function HomePage() {
+  const { locale, t } = await getTranslations();
   return (
     <main className="min-h-screen">
       {/* Top bar */}
@@ -87,23 +91,12 @@ export default function HomePage() {
             </span>
           </div>
           <nav className="flex items-center gap-3 text-sm text-[var(--color-muted)]">
+            <LanguageSwitcher current={locale} />
             <a
-              href="#trust"
-              className="hidden hover:text-[var(--color-text)] sm:inline"
-            >
-              Trust
-            </a>
-            <a
-              href="#audiences"
-              className="hidden hover:text-[var(--color-text)] sm:inline"
-            >
-              Who it&apos;s for
-            </a>
-            <a
-              href="https://github.com/Emmanuelok/youth-jobs-web-app"
+              href="/sign-in?intent=candidate"
               className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-xs hover:border-[var(--color-primary-strong)] hover:text-[var(--color-text)]"
             >
-              View blueprint
+              {t.nav.signIn}
             </a>
           </nav>
         </div>
@@ -114,19 +107,17 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-7">
             <p className="mb-4 inline-block rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              Coming soon · Accra and Kumasi first
+              {t.landing.badge}
             </p>
             <h1 className="text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
-              Real opportunities for{" "}
+              {t.landing.titleLead}{" "}
               <span style={{ color: "var(--color-accent)" }}>
-                Ghana&apos;s youth
+                {t.landing.titleEmph}
               </span>
               .
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--color-muted)] sm:text-lg">
-              Verified jobs, apprenticeships, internships, gigs and skills
-              training — built mobile-first, low-data, and trust-focused. No
-              CV? No problem. We help you build one.
+              {t.landing.subtitle}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -134,18 +125,17 @@ export default function HomePage() {
                 href="/sign-in?intent=candidate"
                 className="rounded-md bg-[var(--color-primary)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"
               >
-                Find work
+                {t.landing.ctaFindWork}
               </a>
               <a
                 href="/sign-in?intent=employer"
                 className="rounded-md border border-[var(--color-border)] px-5 py-3 text-sm font-semibold hover:border-[var(--color-primary-strong)]"
               >
-                Post a job or apprenticeship
+                {t.landing.ctaPostJob}
               </a>
             </div>
             <p className="mt-2 text-xs text-[var(--color-muted)]">
-              Free for job seekers, always. Sign in by SMS — no email or
-              password needed.
+              {t.landing.ctaNote}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -163,7 +153,7 @@ export default function HomePage() {
           <aside className="lg:col-span-5">
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
               <p className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-                What you&apos;ll find
+                {t.landing.categoriesTitle}
               </p>
               <ul className="mt-4 space-y-3">
                 {categories.map((c) => (
@@ -188,11 +178,10 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <div className="mb-10 max-w-2xl">
             <p className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              Built for trust
+              {t.landing.trustKicker}
             </p>
             <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">
-              Job scams and unpaid labour break trust. We design against them
-              from day one.
+              {t.landing.trustTitle}
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -216,10 +205,10 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <div className="mb-8 max-w-2xl">
             <p className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              Who it&apos;s for
+              {t.landing.audiencesKicker}
             </p>
             <h2 className="mt-2 text-2xl font-semibold sm:text-3xl">
-              One platform. Many real Ghanaian paths to dignified work.
+              {t.landing.audiencesTitle}
             </h2>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -277,13 +266,14 @@ export default function HomePage() {
             © {new Date().getFullYear()} Ghana Youth Jobs · Built mobile-first and low-data ·
             Free for job seekers, always.
           </p>
-          <nav className="flex gap-4">
+          <nav className="flex items-center gap-4">
             <a href="/privacy" className="hover:text-[var(--color-text)]">
               Privacy
             </a>
             <a href="/terms" className="hover:text-[var(--color-text)]">
               Terms
             </a>
+            <LanguageSwitcher current={locale} />
           </nav>
         </div>
       </footer>

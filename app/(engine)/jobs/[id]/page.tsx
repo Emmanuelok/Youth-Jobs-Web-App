@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { newIdempotencyKey } from "@/lib/idempotency";
+import { SafetyNotice } from "@/app/_components/safety-notice";
 import { applyToJobAction, reportJobAction } from "./actions";
 
 const inputCls =
@@ -169,17 +170,7 @@ export default async function JobDetailPage({
         </section>
       )}
 
-      <div className="mt-6 rounded-lg border border-[var(--color-accent)]/40 bg-[var(--color-surface)] p-4 text-xs text-[var(--color-muted)]">
-        <p className="font-semibold text-[var(--color-accent)]">
-          Stay safe when applying
-        </p>
-        <ul className="mt-2 list-disc space-y-1 pl-4">
-          <li>Never pay money to get a job or apprenticeship.</li>
-          <li>Meet for the first interview in a public place during the day.</li>
-          <li>Tell a trusted person where you are going and when you expect to return.</li>
-          <li>If anything feels wrong, leave and report the post.</li>
-        </ul>
-      </div>
+      <SafetyNotice variant="apply" />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <form action={applyToJobAction} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">

@@ -4,8 +4,11 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
 import { getUnreadCount } from "@/app/(engine)/messages/actions";
+import { getTranslations } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/app/_components/language-switcher";
 
 export async function EngineHeader() {
+  const { locale, t } = await getTranslations();
   let role: "candidate" | "employer" | "admin" | null = null;
   let unread = 0;
   try {
@@ -48,7 +51,7 @@ export async function EngineHeader() {
             href="/jobs"
             className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
           >
-            Find work
+            {t.nav.findWork}
           </Link>
           {role === "candidate" && (
             <>
@@ -56,13 +59,13 @@ export async function EngineHeader() {
                 href="/applications"
                 className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
               >
-                Applications
+                {t.nav.applications}
               </Link>
               <Link
                 href="/cv"
                 className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
               >
-                My CV
+                {t.nav.myCv}
               </Link>
             </>
           )}
@@ -71,7 +74,7 @@ export async function EngineHeader() {
               href="/messages"
               className="relative rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
             >
-              Messages
+              {t.nav.messages}
               {unread > 0 && (
                 <span className="ml-1 inline-flex items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
                   {unread}
@@ -84,7 +87,7 @@ export async function EngineHeader() {
               href="/employer"
               className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
             >
-              Employer
+              {t.nav.employer}
             </Link>
           )}
           {role === "admin" && (
@@ -92,7 +95,7 @@ export async function EngineHeader() {
               href="/admin"
               className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
             >
-              Admin
+              {t.nav.admin}
             </Link>
           )}
           {role && (
@@ -100,7 +103,7 @@ export async function EngineHeader() {
               href="/settings"
               className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
             >
-              Settings
+              {t.nav.settings}
             </Link>
           )}
           {role ? (
@@ -109,7 +112,7 @@ export async function EngineHeader() {
                 type="submit"
                 className="rounded-md border border-[var(--color-border)] px-3 py-1.5 hover:border-[var(--color-primary-strong)]"
               >
-                Sign out
+                {t.nav.signOut}
               </button>
             </form>
           ) : (
@@ -117,9 +120,10 @@ export async function EngineHeader() {
               href="/sign-in"
               className="rounded-md border border-[var(--color-border)] px-3 py-1.5 hover:border-[var(--color-primary-strong)]"
             >
-              Sign in
+              {t.nav.signIn}
             </Link>
           )}
+          <LanguageSwitcher current={locale} className="ml-1 border-l border-[var(--color-border)] pl-1" />
         </nav>
       </div>
     </header>

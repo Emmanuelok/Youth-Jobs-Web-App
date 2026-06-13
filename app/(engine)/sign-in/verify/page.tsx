@@ -1,3 +1,4 @@
+import { getTranslations } from "@/lib/i18n";
 import { verifyOtpAction } from "../actions";
 
 export default async function VerifyOtpPage({
@@ -9,14 +10,15 @@ export default async function VerifyOtpPage({
   const phone = sp.phone ?? "";
   const intent = sp.intent === "employer" ? "employer" : "candidate";
   const error = sp.error;
+  const { t } = await getTranslations();
 
   return (
     <section className="mx-auto max-w-md px-4 py-12 sm:px-6">
-      <h1 className="text-2xl font-semibold sm:text-3xl">Enter your code</h1>
+      <h1 className="text-2xl font-semibold sm:text-3xl">{t.signIn.verifyTitle}</h1>
       <p className="mt-2 text-sm text-[var(--color-muted)]">
-        We sent a 6-digit code to{" "}
+        {t.signIn.verifyIntro}{" "}
         <span className="text-[var(--color-text)]">{phone || "your phone"}</span>
-        . It expires in 10 minutes.
+        . {t.signIn.verifyExpiry}
       </p>
 
       {error && (
@@ -31,7 +33,7 @@ export default async function VerifyOtpPage({
 
         <div>
           <label htmlFor="code" className="block text-xs uppercase tracking-wider text-[var(--color-muted)]">
-            6-digit code
+            {t.signIn.codeLabel}
           </label>
           <input
             id="code"
@@ -51,17 +53,17 @@ export default async function VerifyOtpPage({
           type="submit"
           className="w-full rounded-md bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)]"
         >
-          Verify and continue
+          {t.signIn.verifyContinue}
         </button>
       </form>
 
       <p className="mt-6 text-xs text-[var(--color-muted)]">
-        Didn&apos;t get a code?{" "}
+        {t.signIn.noCode}{" "}
         <a
           href={`/sign-in?intent=${intent}`}
           className="underline hover:text-[var(--color-text)]"
         >
-          Send a new one
+          {t.signIn.sendNew}
         </a>
         .
       </p>
