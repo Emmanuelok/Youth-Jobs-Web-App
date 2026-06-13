@@ -19,6 +19,16 @@ export const en = {
     postJob: "Post a job",
     preview: "Preview",
     language: "Language",
+    saved: "Saved",
+    skipToContent: "Skip to main content",
+  },
+  saved: {
+    title: "Saved opportunities",
+    save: "Save",
+    saved: "Saved",
+    remove: "Remove",
+    empty: "You haven't saved any opportunities yet.",
+    browse: "Browse opportunities",
   },
   landing: {
     badge: "Coming soon · Accra and Kumasi first",

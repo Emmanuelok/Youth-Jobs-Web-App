@@ -27,6 +27,16 @@ export const tw: Messages = {
     postJob: "Fa adwuma to hɔ",
     preview: "Hwɛ kane",
     language: "Kasa",
+    saved: "Deɛ woakora",
+    skipToContent: "Kɔ deɛ ɛho hia no so",
+  },
+  saved: {
+    title: "Adwuma a woakora so",
+    save: "Kora so",
+    saved: "Woakora so",
+    remove: "Yi fi",
+    empty: "Wonkoraa adwuma biara nso ɛ.",
+    browse: "Hwehwɛ adwuma",
   },
   landing: {
     badge: "Ɛreba seesei ara · Accra ne Kumasi kane",

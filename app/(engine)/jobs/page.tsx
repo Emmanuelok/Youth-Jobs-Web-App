@@ -3,6 +3,9 @@ import { and, desc, eq, ilike } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { jobs } from "@/db/schema";
 import { GHANA_REGIONS, JOB_CATEGORIES } from "@/lib/ghana";
+import { getSession } from "@/lib/auth/session";
+import { getSavedJobIdSet } from "@/lib/saved";
+import { SaveButton } from "@/app/_components/save-button";
 
 const inputCls =
   "w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary-strong)] focus:outline-none";
@@ -40,6 +43,17 @@ export default async function JobsPage({
     .where(and(...conditions))
     .orderBy(desc(jobs.publishedAt))
     .limit(50);
+
+  // Saved state — only for signed-in candidates; one query for the page.
+  const session = await getSession();
+  const canSave = session.userId && session.role !== "employer";
+  const savedSet =
+    canSave && session.userId
+      ? await getSavedJobIdSet(
+          session.userId,
+          rows.map((r) => r.id),
+        )
+      : new Set<string>();
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -111,9 +125,18 @@ export default async function JobsPage({
                   {j.category} · {j.city}, {j.region}
                 </p>
               </div>
-              <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
-                {j.type}
-              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                  {j.type}
+                </span>
+                {canSave && (
+                  <SaveButton
+                    jobId={j.id}
+                    saved={savedSet.has(j.id)}
+                    returnTo="/jobs"
+                  />
+                )}
+              </div>
             </div>
             <p className="mt-3 line-clamp-2 text-sm text-[var(--color-muted)]">
               {j.description.slice(0, 220)}

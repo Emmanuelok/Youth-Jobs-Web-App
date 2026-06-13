@@ -141,6 +141,31 @@ export const applications = pgTable(
 );
 
 /**
+ * Saved / bookmarked opportunities. Lets a candidate on limited data mark a
+ * job to come back to later instead of re-searching. One row per
+ * (candidate, job); toggling removes it.
+ */
+export const savedOpportunities = pgTable(
+  "saved_opportunities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("saved_opportunities_unique").on(t.candidateId, t.jobId),
+    index("saved_opportunities_candidate_idx").on(t.candidateId, t.createdAt),
+  ],
+);
+
+/**
  * Apprenticeship-specific terms. One row per apprenticeship job. Captured
  * at post time, displayed to the candidate before they apply, and rendered
  * as a printable agreement once a placement is made.
@@ -384,3 +409,4 @@ export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type GuardianConsent = typeof guardianConsents.$inferSelect;
 export type ApprenticeshipTerms = typeof apprenticeshipTerms.$inferSelect;
+export type SavedOpportunity = typeof savedOpportunities.$inferSelect;

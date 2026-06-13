@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   applications,
@@ -10,7 +10,9 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { newIdempotencyKey } from "@/lib/idempotency";
+import { isJobSaved } from "@/lib/saved";
 import { SafetyNotice } from "@/app/_components/safety-notice";
+import { SaveButton } from "@/app/_components/save-button";
 import { applyToJobAction, reportJobAction } from "./actions";
 
 const inputCls =
@@ -45,14 +47,22 @@ export default async function JobDetailPage({
     : [undefined];
 
   const session = await getSession();
+  const canSave = !!session.userId && session.role !== "employer";
   let alreadyApplied = false;
+  let saved = false;
   if (session.userId) {
     const [app] = await db
       .select({ id: applications.id })
       .from(applications)
-      .where(eq(applications.jobId, job.id))
+      .where(
+        and(
+          eq(applications.jobId, job.id),
+          eq(applications.candidateId, session.userId),
+        ),
+      )
       .limit(1);
     alreadyApplied = !!app;
+    if (canSave) saved = await isJobSaved(session.userId, job.id);
   }
 
   return (
@@ -65,9 +75,14 @@ export default async function JobDetailPage({
       </Link>
 
       <header className="mt-3">
-        <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
-          {job.type}
-        </span>
+        <div className="flex items-start justify-between gap-3">
+          <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+            {job.type}
+          </span>
+          {canSave && (
+            <SaveButton jobId={job.id} saved={saved} returnTo={`/jobs/${job.id}`} />
+          )}
+        </div>
         <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">{job.title}</h1>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
           {employer?.organizationName ?? "Verified employer"} · {job.city},{" "}
