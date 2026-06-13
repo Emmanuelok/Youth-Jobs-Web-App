@@ -166,6 +166,63 @@ export const savedOpportunities = pgTable(
 );
 
 /**
+ * Interviews — a structured wrapper around what would otherwise live in
+ * free-text messages. Once an employer wants to meet a candidate, they
+ * propose a time/place/mode, the candidate confirms or proposes an
+ * alternative, and both sides get SMS reminders. Reduces no-shows and
+ * keeps an audit trail employers can refer to if there's a dispute.
+ *
+ * Status flow:
+ *   proposed → confirmed → (completed | no_show)
+ *   proposed → declined (by candidate)
+ *   * → cancelled (by either party)
+ *   * → rescheduled (creates a new row referencing this one via metadata)
+ */
+export const interviews = pgTable(
+  "interviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    employerId: uuid("employer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id").references(() => applications.id, {
+      onDelete: "set null",
+    }),
+    proposedBy: uuid("proposed_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    durationMinutes: integer("duration_minutes").notNull().default(30),
+    mode: text("mode").notNull(), // 'in_person' | 'phone' | 'video'
+    locationOrLink: text("location_or_link"),
+    notes: text("notes"),
+    status: text("status").notNull().default("proposed"),
+    // 'proposed' | 'confirmed' | 'declined' | 'cancelled' | 'completed' | 'no_show'
+    decisionAt: timestamp("decision_at", { withTimezone: true }),
+    decisionBy: uuid("decision_by"),
+    reminder24hSentAt: timestamp("reminder_24h_sent_at", { withTimezone: true }),
+    reminder1hSentAt: timestamp("reminder_1h_sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("interviews_candidate_scheduled_idx").on(t.candidateId, t.scheduledAt),
+    index("interviews_employer_scheduled_idx").on(t.employerId, t.scheduledAt),
+    index("interviews_status_scheduled_idx").on(t.status, t.scheduledAt),
+  ],
+);
+
+/**
  * Skills taxonomy — the canonical list of skills a candidate can hold a
  * verified badge in. Slugs are stable, human-readable identifiers used
  * across assessments and badges. Adding a new skill: insert a row here
@@ -556,3 +613,4 @@ export type Assessment = typeof assessments.$inferSelect;
 export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
 export type AssessmentAttempt = typeof assessmentAttempts.$inferSelect;
 export type SkillBadge = typeof skillBadges.$inferSelect;
+export type Interview = typeof interviews.$inferSelect;

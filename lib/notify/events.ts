@@ -4,6 +4,7 @@ import {
   applications,
   candidateProfiles,
   employerProfiles,
+  interviews,
   jobs,
   notificationLog,
   users,
@@ -218,6 +219,183 @@ export async function notifyJobDecision(
     body,
     jobIds: [jobId],
   });
+}
+
+/* ───────── Interview events ───────── */
+
+function formatWhen(d: Date): string {
+  // Africa/Accra is GMT+0, no DST — toLocaleString w/o tz is fine for
+  // SMS purposes. Returns e.g. "Tue 17 Jun 14:30".
+  return d.toLocaleString("en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+export async function notifyInterviewProposed(interviewId: string) {
+  const db = getDb();
+  const [iv] = await db
+    .select()
+    .from(interviews)
+    .where(eq(interviews.id, interviewId))
+    .limit(1);
+  if (!iv) return;
+
+  const [job] = await db
+    .select({ title: jobs.title })
+    .from(jobs)
+    .where(eq(jobs.id, iv.jobId))
+    .limit(1);
+  const [emp] = await db
+    .select({ organizationName: employerProfiles.organizationName })
+    .from(employerProfiles)
+    .where(eq(employerProfiles.userId, iv.employerId))
+    .limit(1);
+  const [candUser] = await db
+    .select({ phone: users.phone })
+    .from(users)
+    .where(eq(users.id, iv.candidateId))
+    .limit(1);
+  if (!candUser) return;
+
+  const when = formatWhen(iv.scheduledAt);
+  const modeLabel =
+    iv.mode === "in_person"
+      ? "in-person"
+      : iv.mode === "phone"
+        ? "phone"
+        : "video";
+
+  const body =
+    `${trim(emp?.organizationName ?? "An employer", 25)} would like an ` +
+    `interview about "${trim(job?.title ?? "the opportunity", 30)}" — ` +
+    `${when} (${iv.durationMinutes}min ${modeLabel}). ` +
+    `Confirm or decline: ${APP_URL}/applications`;
+
+  await deliver({
+    recipientUserId: iv.candidateId,
+    recipientPhone: candUser.phone,
+    kind: "interview_proposed",
+    body,
+    jobIds: [iv.jobId],
+  });
+}
+
+export async function notifyInterviewDecision(
+  interviewId: string,
+  decision: "confirmed" | "declined" | "cancelled",
+) {
+  const db = getDb();
+  const [iv] = await db
+    .select()
+    .from(interviews)
+    .where(eq(interviews.id, interviewId))
+    .limit(1);
+  if (!iv) return;
+
+  // Notify the other party. If the candidate confirmed/declined, tell the
+  // employer; if the employer cancelled, tell the candidate.
+  const recipientId =
+    iv.decisionBy === iv.candidateId ? iv.employerId : iv.candidateId;
+  const [recipient] = await db
+    .select({ phone: users.phone })
+    .from(users)
+    .where(eq(users.id, recipientId))
+    .limit(1);
+  if (!recipient) return;
+
+  const [job] = await db
+    .select({ title: jobs.title })
+    .from(jobs)
+    .where(eq(jobs.id, iv.jobId))
+    .limit(1);
+
+  const when = formatWhen(iv.scheduledAt);
+  const verb =
+    decision === "confirmed"
+      ? "confirmed"
+      : decision === "declined"
+        ? "declined"
+        : "cancelled";
+
+  const body = `Interview for "${trim(job?.title ?? "the role", 30)}" on ${when} was ${verb}. See: ${APP_URL}/applications`;
+
+  await deliver({
+    recipientUserId: recipientId,
+    recipientPhone: recipient.phone,
+    kind: `interview_${decision}`,
+    body,
+    jobIds: [iv.jobId],
+  });
+}
+
+/**
+ * Send the reminder SMS to BOTH sides of an interview. Caller (the cron)
+ * is responsible for picking the right window and stamping the appropriate
+ * reminder_*_sent_at field so we don't send twice.
+ */
+export async function notifyInterviewReminder(
+  interviewId: string,
+  window: "24h" | "1h",
+) {
+  const db = getDb();
+  const [iv] = await db
+    .select()
+    .from(interviews)
+    .where(eq(interviews.id, interviewId))
+    .limit(1);
+  if (!iv) return;
+
+  const [job] = await db
+    .select({ title: jobs.title })
+    .from(jobs)
+    .where(eq(jobs.id, iv.jobId))
+    .limit(1);
+  const [emp] = await db
+    .select({ phone: users.phone })
+    .from(users)
+    .where(eq(users.id, iv.employerId))
+    .limit(1);
+  const [cand] = await db
+    .select({ phone: users.phone })
+    .from(users)
+    .where(eq(users.id, iv.candidateId))
+    .limit(1);
+
+  const when = formatWhen(iv.scheduledAt);
+  const where =
+    iv.mode === "in_person"
+      ? iv.locationOrLink ?? "(location TBD)"
+      : iv.mode === "phone"
+        ? "phone call"
+        : iv.locationOrLink ?? "video call";
+
+  const head =
+    window === "24h" ? "Tomorrow's interview" : "Interview in 1 hour";
+  const body = `${head}: ${trim(job?.title ?? "interview", 30)} at ${when} (${where}). Reply via ${APP_URL}/applications`;
+
+  if (cand) {
+    await deliver({
+      recipientUserId: iv.candidateId,
+      recipientPhone: cand.phone,
+      kind: `interview_reminder_${window}`,
+      body,
+      jobIds: [iv.jobId],
+    });
+  }
+  if (emp) {
+    await deliver({
+      recipientUserId: iv.employerId,
+      recipientPhone: emp.phone,
+      kind: `interview_reminder_${window}`,
+      body,
+      jobIds: [iv.jobId],
+    });
+  }
 }
 
 /**

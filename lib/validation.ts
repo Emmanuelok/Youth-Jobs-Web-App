@@ -108,6 +108,32 @@ export const apprenticeshipTermsSchema = z.object({
   notesForGuardians: z.string().max(800).optional(),
 });
 
+/**
+ * Interview proposal.
+ *
+ * scheduledAt is validated to be at least 30 minutes in the future (gives
+ * the other party a real chance to react), and at most 90 days out (longer
+ * proposals never get acted on and clutter the queue).
+ */
+export const interviewProposalSchema = z.object({
+  applicationId: z.string().uuid().optional().nullable(),
+  scheduledAt: z.string().refine(
+    (v) => {
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return false;
+      const now = Date.now();
+      const min = now + 30 * 60 * 1000;
+      const max = now + 90 * 24 * 60 * 60 * 1000;
+      return d.getTime() >= min && d.getTime() <= max;
+    },
+    "Pick a time between 30 minutes from now and 90 days out.",
+  ),
+  durationMinutes: z.number().int().gte(5).lte(180),
+  mode: z.enum(["in_person", "phone", "video"]),
+  locationOrLink: z.string().max(500).optional(),
+  notes: z.string().max(1000).optional(),
+});
+
 export const messageBodySchema = z
   .string()
   .trim()

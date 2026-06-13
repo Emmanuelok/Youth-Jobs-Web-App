@@ -11,7 +11,9 @@ import { getSession } from "@/lib/auth/session";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { getActiveBadgeSlugsByCandidate } from "@/lib/assessments/queries";
 import { listSkills } from "@/lib/assessments/queries";
+import { getTranslations } from "@/lib/i18n";
 import { startConversationAction } from "../../../messages/actions";
+import { proposeInterviewAction } from "@/app/(engine)/interviews/actions";
 import { closeJobAction, setApplicationStatusAction } from "./actions";
 
 const inputCls =
@@ -66,6 +68,17 @@ export default async function EmployerJobDetailPage({
   );
   const allSkills = await listSkills();
   const skillNameBySlug = new Map(allSkills.map((s) => [s.slug, s.name]));
+  const { t } = await getTranslations();
+
+  // Default the proposed time to "tomorrow at 10am" in the user's locale.
+  const defaultProposedAt = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(10, 0, 0, 0);
+    // Format for <input type="datetime-local">: YYYY-MM-DDTHH:MM
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  })();
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
@@ -236,6 +249,96 @@ export default async function EmployerJobDetailPage({
                   </div>
                 </div>
               </div>
+
+              <details className="mt-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
+                <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                  {t.interview.proposeTitle}
+                </summary>
+                <form
+                  action={proposeInterviewAction}
+                  className="mt-3 space-y-3"
+                >
+                  <input type="hidden" name="jobId" value={job.id} />
+                  <input type="hidden" name="candidateId" value={a.candidateId} />
+                  <input type="hidden" name="applicationId" value={a.id} />
+                  <input type="hidden" name="idemKey" value={newIdempotencyKey()} />
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block text-xs">
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                        {t.interview.when}
+                      </span>
+                      <input
+                        type="datetime-local"
+                        name="scheduledAt"
+                        required
+                        defaultValue={defaultProposedAt}
+                        className={inputCls}
+                      />
+                    </label>
+                    <label className="block text-xs">
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                        {t.interview.duration}
+                      </span>
+                      <input
+                        type="number"
+                        name="durationMinutes"
+                        min={5}
+                        max={180}
+                        defaultValue={30}
+                        required
+                        className={inputCls}
+                      />
+                    </label>
+                  </div>
+                  <label className="block text-xs">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                      {t.interview.mode}
+                    </span>
+                    <select
+                      name="mode"
+                      required
+                      defaultValue=""
+                      className={inputCls}
+                    >
+                      <option value="" disabled>
+                        Choose
+                      </option>
+                      <option value="in_person">{t.interview.modeInPerson}</option>
+                      <option value="phone">{t.interview.modePhone}</option>
+                      <option value="video">{t.interview.modeVideo}</option>
+                    </select>
+                  </label>
+                  <label className="block text-xs">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                      {t.interview.locationLabel}
+                    </span>
+                    <input
+                      name="locationOrLink"
+                      maxLength={500}
+                      placeholder="e.g. Adum branch, near Kejetia; or paste a video link"
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                      {t.interview.notesLabel}
+                    </span>
+                    <textarea
+                      name="notes"
+                      rows={2}
+                      maxLength={1000}
+                      className={`${inputCls} resize-y`}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="rounded-md bg-[var(--color-primary)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--color-primary-strong)]"
+                  >
+                    {t.interview.submit}
+                  </button>
+                </form>
+              </details>
             </li>
           );
         })}
