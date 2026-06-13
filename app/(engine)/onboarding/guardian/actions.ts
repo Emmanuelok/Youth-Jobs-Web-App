@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { sendSms } from "@/lib/auth/sms";
+import { appUrl } from "@/lib/url";
 import { checkLimit } from "@/lib/ratelimit";
 import { phoneSchema } from "@/lib/validation";
 import { str, withError, withFlash } from "@/lib/forms";
@@ -106,8 +107,7 @@ export async function requestGuardianConsentAction(formData: FormData) {
     expiresAt,
   });
 
-  const appUrl = resolveAppUrl();
-  const consentUrl = `${appUrl}/consent/${token}`;
+  const consentUrl = `${appUrl()}/consent/${token}`;
 
   // SMS body must fit comfortably in two SMS pages and stay literal — guardians
   // may have low English confidence. Avoid jargon.
@@ -124,14 +124,4 @@ export async function requestGuardianConsentAction(formData: FormData) {
   await sendSms(guardianPhone, smsBody);
 
   redirect(`/onboarding/guardian?next=${encodeURIComponent(next)}`);
-}
-
-function resolveAppUrl(): string {
-  const raw =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "");
-  if (!raw) return "https://ghanayouthjobs.app";
-  return raw.replace(/\/+$/, "");
 }

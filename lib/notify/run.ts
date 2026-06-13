@@ -8,6 +8,7 @@ import {
 } from "@/db/schema";
 import { sendSms } from "@/lib/auth/sms";
 import { log } from "@/lib/log";
+import { appUrl } from "@/lib/url";
 import { sendWhatsApp } from "./whatsapp";
 import { scoreJobsForCandidate, type MatchableJob } from "./match";
 import { buildSmsDigest } from "./digest";
@@ -91,7 +92,7 @@ export async function runJobAlerts(): Promise<AlertRunResult> {
     .orderBy(sql`${candidateProfiles.lastAlertedAt} asc nulls first`)
     .limit(MAX_CANDIDATES_PER_RUN);
 
-  const appUrl = resolveAppUrl();
+  const baseUrl = appUrl();
 
   let digestsSent = 0;
   let digestsFailed = 0;
@@ -130,7 +131,7 @@ export async function runJobAlerts(): Promise<AlertRunResult> {
       continue;
     }
 
-    const body = buildSmsDigest(scored, appUrl);
+    const body = buildSmsDigest(scored, baseUrl);
     const channel: "sms" | "whatsapp" =
       c.notifyChannel === "whatsapp" ? "whatsapp" : "sms";
 
@@ -171,14 +172,4 @@ async function markAlerted(userId: string, at: Date): Promise<void> {
     .update(candidateProfiles)
     .set({ lastAlertedAt: at, updatedAt: at })
     .where(eq(candidateProfiles.userId, userId));
-}
-
-function resolveAppUrl(): string {
-  const raw =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "");
-  if (!raw) return "https://ghanayouthjobs.app"; // safe placeholder
-  return raw.replace(/\/+$/, "");
 }
