@@ -1,4 +1,5 @@
 import { getSetupErrors } from "@/lib/setup";
+import { getTranslations } from "@/lib/i18n";
 import { EngineHeader } from "./_components/header";
 
 // All engine routes read sessions/DB at request time — never prerender.
@@ -9,6 +10,7 @@ export default async function EngineLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = await getTranslations();
   const errors = getSetupErrors();
   if (errors.length > 0) {
     return (
@@ -39,9 +41,15 @@ export default async function EngineLayout({
     );
   }
   return (
-    <main className="min-h-screen">
+    <div className="min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-[var(--color-primary)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        {t.nav.skipToContent}
+      </a>
       <EngineHeader />
-      {children}
-    </main>
+      <main id="main-content">{children}</main>
+    </div>
   );
 }
