@@ -68,6 +68,12 @@ export async function EngineHeader() {
                 {t.nav.saved}
               </Link>
               <Link
+                href="/skills"
+                className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+              >
+                {t.skills.title}
+              </Link>
+              <Link
                 href="/cv"
                 className="rounded-md px-3 py-1.5 text-[var(--color-muted)] hover:text-[var(--color-text)]"
               >

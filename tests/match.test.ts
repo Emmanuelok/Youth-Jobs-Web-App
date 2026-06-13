@@ -146,3 +146,48 @@ describe("scoreJobsForCandidate — scoring", () => {
     expect(scoreJobsForCandidate(c, [j], NOW)).toEqual([]);
   });
 });
+
+describe("scoreJobsForCandidate — verified badges", () => {
+  it("ranks a badge-holder above an equally-located non-holder", () => {
+    const withBadge = candidate({ skills: [], badgeSlugs: ["customer_service"] });
+    const withoutBadge = candidate({ skills: [], badgeSlugs: [] });
+    const j = job({
+      title: "Sales assistant",
+      description: "Friendly customer service in a busy shop.",
+    });
+    const a = scoreJobsForCandidate(withBadge, [j], NOW)[0];
+    const b = scoreJobsForCandidate(withoutBadge, [j], NOW)[0];
+    expect(a.score).toBeGreaterThan(b.score);
+    expect(a.reasons.some((r) => r.toLowerCase().includes("verified"))).toBe(true);
+  });
+
+  it("a badge worth more than a self-reported skill", () => {
+    const cBadge = candidate({ skills: [], badgeSlugs: ["english_basics"] });
+    const cSkill = candidate({ skills: ["english_basics"], badgeSlugs: [] });
+    const j = job({
+      title: "Receptionist with English basics",
+      city: "Cape Coast",
+      region: "Central",
+    });
+    const aB = scoreJobsForCandidate(cBadge, [j], NOW)[0];
+    const aS = scoreJobsForCandidate(cSkill, [j], NOW)[0];
+    expect(aB.score).toBeGreaterThan(aS.score);
+  });
+
+  it("doesn't reward a badge unrelated to the job", () => {
+    const c = candidate({
+      city: "Wa",
+      region: "Upper West",
+      skills: [],
+      badgeSlugs: ["english_basics"],
+    });
+    const j = job({
+      city: "Cape Coast",
+      region: "Central",
+      title: "Tailoring",
+      category: "Tailoring & garment making",
+      description: "Sewing and cutting work.",
+    });
+    expect(scoreJobsForCandidate(c, [j], NOW)).toEqual([]);
+  });
+});

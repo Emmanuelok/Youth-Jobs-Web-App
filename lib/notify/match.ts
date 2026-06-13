@@ -24,6 +24,8 @@ export type MatchableCandidate = {
   yearOfBirth: number;
   isUnder18: boolean;
   skills: string[];
+  /** Slugs from skills_taxonomy that the candidate holds a verified badge in. */
+  badgeSlugs?: string[];
 };
 
 export type MatchableJob = {
@@ -103,6 +105,23 @@ export function scoreJobsForCandidate(
     ) {
       score += 1;
       reasons.push("Posted today");
+    }
+
+    // Verified badge boost: each badge whose slug-as-tokens appears in the
+    // job's text adds +4. Worth more than a self-reported skill match
+    // (+2) because the badge is independently graded.
+    if (candidate.badgeSlugs && candidate.badgeSlugs.length > 0) {
+      const matchedBadges: string[] = [];
+      for (const slug of candidate.badgeSlugs) {
+        const slugTokens = tokenize(slug.replace(/_/g, " "));
+        if (slugTokens.some((tok) => jobTokens.has(tok))) {
+          matchedBadges.push(slug);
+        }
+      }
+      if (matchedBadges.length > 0) {
+        score += matchedBadges.length * 4;
+        reasons.push(`Verified: ${matchedBadges.slice(0, 2).join(", ")}`);
+      }
     }
 
     if (score === 0) continue;

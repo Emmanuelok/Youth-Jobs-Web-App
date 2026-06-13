@@ -7,6 +7,7 @@ import {
   users,
 } from "@/db/schema";
 import { sendSms } from "@/lib/auth/sms";
+import { getActiveBadgeSlugsByCandidate } from "@/lib/assessments/queries";
 import { log } from "@/lib/log";
 import { appUrl } from "@/lib/url";
 import { sendWhatsApp } from "./whatsapp";
@@ -92,6 +93,12 @@ export async function runJobAlerts(): Promise<AlertRunResult> {
     .orderBy(sql`${candidateProfiles.lastAlertedAt} asc nulls first`)
     .limit(MAX_CANDIDATES_PER_RUN);
 
+  // Pull verified badges for every candidate in one go — feeds the matching
+  // boost in scoreJobsForCandidate.
+  const badgeMap = await getActiveBadgeSlugsByCandidate(
+    candidates.map((c) => c.userId),
+  );
+
   const baseUrl = appUrl();
 
   let digestsSent = 0;
@@ -121,6 +128,7 @@ export async function runJobAlerts(): Promise<AlertRunResult> {
         yearOfBirth: c.yearOfBirth,
         isUnder18: c.isUnder18,
         skills: c.skills,
+        badgeSlugs: badgeMap.get(c.userId) ?? [],
       },
       candidateRecentJobs,
       now,

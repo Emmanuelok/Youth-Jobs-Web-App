@@ -9,6 +9,8 @@ import {
 } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { newIdempotencyKey } from "@/lib/idempotency";
+import { getActiveBadgeSlugsByCandidate } from "@/lib/assessments/queries";
+import { listSkills } from "@/lib/assessments/queries";
 import { startConversationAction } from "../../../messages/actions";
 import { closeJobAction, setApplicationStatusAction } from "./actions";
 
@@ -57,6 +59,13 @@ export default async function EmployerJobDetailPage({
     )
     .where(eq(applications.jobId, id))
     .orderBy(desc(applications.createdAt));
+
+  // Batched fetch of badges for every applicant on this page (no N+1).
+  const badgeMap = await getActiveBadgeSlugsByCandidate(
+    applicants.map((a) => a.candidateId),
+  );
+  const allSkills = await listSkills();
+  const skillNameBySlug = new Map(allSkills.map((s) => [s.slug, s.name]));
 
   return (
     <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
@@ -136,6 +145,18 @@ export default async function EmployerJobDetailPage({
                     <p className="text-xs text-[var(--color-muted)]">
                       Languages: {a.languages.join(", ")}
                     </p>
+                  )}
+                  {(badgeMap.get(a.candidateId)?.length ?? 0) > 0 && (
+                    <ul className="mt-2 flex flex-wrap gap-1">
+                      {badgeMap.get(a.candidateId)!.map((slug) => (
+                        <li
+                          key={slug}
+                          className="inline-flex items-center rounded-full border border-[var(--color-primary-strong)] bg-[var(--color-surface-2)] px-2 py-0.5 text-[10px] text-[var(--color-primary-strong)]"
+                        >
+                          ✓ {skillNameBySlug.get(slug) ?? slug}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                   {a.message && (
                     <p className="mt-2 whitespace-pre-line rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm">

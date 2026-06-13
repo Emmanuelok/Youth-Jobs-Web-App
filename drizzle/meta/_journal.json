@@ -15,6 +15,13 @@
       "when": 1781334420649,
       "tag": "0001_good_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781385123197,
+      "tag": "0002_lumpy_galactus",
+      "breakpoints": true
     }
   ]
 }

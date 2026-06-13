@@ -166,6 +166,147 @@ export const savedOpportunities = pgTable(
 );
 
 /**
+ * Skills taxonomy — the canonical list of skills a candidate can hold a
+ * verified badge in. Slugs are stable, human-readable identifiers used
+ * across assessments and badges. Adding a new skill: insert a row here
+ * via admin (or seed), then create assessments that target it.
+ */
+export const skillsTaxonomy = pgTable("skills_taxonomy", {
+  slug: text("slug").primaryKey(), // e.g. "english_basics", "tailoring"
+  name: text("name").notNull(),
+  category: text("category").notNull(), // 'language' | 'literacy' | 'numeracy' | 'soft' | 'digital' | 'trade'
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Assessments — one per skill (a skill may have multiple versions over
+ * time but only one isActive at a time per language). Self-graded
+ * multiple-choice / true-false / short-text-match. We never time the
+ * candidate (low-confidence users), we never gate by literacy beyond what
+ * the assessment itself tests, and we always show explanations after
+ * grading so the assessment doubles as a learning surface.
+ */
+export const assessments = pgTable(
+  "assessments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    skillSlug: text("skill_slug")
+      .notNull()
+      .references(() => skillsTaxonomy.slug, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    introText: text("intro_text").notNull(),
+    passingScore: integer("passing_score").notNull().default(70), // 0-100
+    language: text("language").notNull().default("en"), // matches i18n locale codes
+    isActive: boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by"), // admin user id (loose; survives admin deletion)
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("assessments_active_skill_idx").on(t.skillSlug, t.language, t.isActive),
+  ],
+);
+
+export const assessmentQuestions = pgTable(
+  "assessment_questions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    assessmentId: uuid("assessment_id")
+      .notNull()
+      .references(() => assessments.id, { onDelete: "cascade" }),
+    questionNumber: integer("question_number").notNull(),
+    prompt: text("prompt").notNull(),
+    // 'multiple_choice' | 'true_false' | 'short_text_match'
+    questionType: text("question_type").notNull(),
+    // MC: [{id:"a",text:"…"},{id:"b",text:"…"}]; TF/STM: null
+    options: jsonb("options"),
+    // All values are lowercase-trimmed and compared case-insensitively at grade time.
+    // MC: ["b"]; TF: ["true"]; STM: ["accra","the accra"] (any match counts as correct).
+    correctAnswers: text("correct_answers").array().notNull(),
+    explanation: text("explanation"),
+    points: integer("points").notNull().default(1),
+  },
+  (t) => [
+    index("assessment_questions_idx").on(t.assessmentId, t.questionNumber),
+  ],
+);
+
+/**
+ * Each time a candidate takes an assessment. We keep attempt history so
+ * we can audit, show progress, and rate-limit retries. Anti-cheat is
+ * simple: a cooldown between attempts after a failure (enforced in the
+ * server action; not a DB constraint), and we cap attempts in a window.
+ */
+export const assessmentAttempts = pgTable(
+  "assessment_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    assessmentId: uuid("assessment_id")
+      .notNull()
+      .references(() => assessments.id, { onDelete: "cascade" }),
+    score: integer("score"), // 0-100, null until completed
+    passed: boolean("passed"), // null until completed
+    // {questionId: "<lowercased submitted answer>"} — full record for audit.
+    responses: jsonb("responses"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("assessment_attempts_candidate_idx").on(t.candidateId, t.completedAt),
+    index("assessment_attempts_assessment_idx").on(t.assessmentId, t.completedAt),
+  ],
+);
+
+/**
+ * The earned badge. One per (candidate, skillSlug); a re-take of a higher
+ * assessment supersedes the previous badge. Badges can be admin-issued
+ * (source='manual_admin') for skills with no assessment yet — used
+ * sparingly and audited.
+ */
+export const skillBadges = pgTable(
+  "skill_badges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    skillSlug: text("skill_slug")
+      .notNull()
+      .references(() => skillsTaxonomy.slug, { onDelete: "cascade" }),
+    source: text("source").notNull(), // 'assessment' | 'manual_admin'
+    attemptId: uuid("attempt_id").references(() => assessmentAttempts.id, {
+      onDelete: "set null",
+    }),
+    score: integer("score"), // null for manual_admin
+    earnedAt: timestamp("earned_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    revokedReason: text("revoked_reason"),
+  },
+  (t) => [
+    uniqueIndex("skill_badges_candidate_skill_unique").on(
+      t.candidateId,
+      t.skillSlug,
+    ),
+    index("skill_badges_candidate_idx").on(t.candidateId, t.earnedAt),
+  ],
+);
+
+/**
  * Apprenticeship-specific terms. One row per apprenticeship job. Captured
  * at post time, displayed to the candidate before they apply, and rendered
  * as a printable agreement once a placement is made.
@@ -410,3 +551,8 @@ export type Message = typeof messages.$inferSelect;
 export type GuardianConsent = typeof guardianConsents.$inferSelect;
 export type ApprenticeshipTerms = typeof apprenticeshipTerms.$inferSelect;
 export type SavedOpportunity = typeof savedOpportunities.$inferSelect;
+export type Skill = typeof skillsTaxonomy.$inferSelect;
+export type Assessment = typeof assessments.$inferSelect;
+export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
+export type AssessmentAttempt = typeof assessmentAttempts.$inferSelect;
+export type SkillBadge = typeof skillBadges.$inferSelect;
